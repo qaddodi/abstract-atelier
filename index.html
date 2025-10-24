@@ -37,11 +37,16 @@
   #topbar { backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); border-color: var(--toolbar-border); box-shadow: 0 6px 18px rgba(0,0,0,.08) inset, 0 6px 18px rgba(0,0,0,.08) }
 
   /* FLOATING STATUSBAR PILL */
-  #statusbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; display: inline-flex; align-items: center; justify-content: center; gap: 14px; padding: 10px 20px; border-radius: 9999px; border: 1px solid var(--toolbar-border); backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12); flex-wrap: nowrap }
+  #statusbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; display: inline-flex; align-items: center; justify-content: center; gap: 14px; padding: 10px var(--pill-pad, 16px); border-radius: 9999px; border: 1px solid var(--toolbar-border); backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12); flex-wrap: nowrap; transition: padding .25s ease }
+  #statusbar:hover, #statusbar:focus-within { padding: 10px var(--pill-pad-expanded, calc(var(--pill-pad, 16px) + 12px)) }
   .dark #statusbar { box-shadow: 0 14px 36px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.45) }
   #statusbar span { white-space: nowrap }
   #statusbar .stat { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums }
   #statusbar .stat svg { flex-shrink: 0 }
+  #statusbar .stat { position: relative }
+  #statusbar .stat-label { opacity: 0; font-size: .65rem; letter-spacing: .04em; text-transform: uppercase; color: inherit; max-width: 0; overflow: hidden; margin-left: 0; transition: opacity .22s ease, transform .22s ease, max-width .22s ease, margin-left .22s ease; transform: translateY(4px) }
+  #statusbar:hover .stat-label,
+  #statusbar:focus-within .stat-label { opacity: .75; transform: translateY(0); max-width: 40px; margin-left: 4px }
 
   /* Quill toolbar visuals */
   /* Quill will add .ql-toolbar automatically to #toolbar after initialization */
@@ -132,27 +137,30 @@
 <div class="infinite-fade-top"></div>
 
 <!-- Floating status pill -->
-<div id="statusbar" class="text-sm text-gray-700 dark:text-gray-300">
-  <span class="stat" id="s-words" data-label="Words">
+<div id="statusbar" class="text-sm text-gray-700 dark:text-gray-300" role="status" aria-live="polite">
+  <span class="stat" id="s-words" data-label="Words" aria-label="Words 0">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">
       <path d="M4 5h12M4 10h9M4 15h8" stroke-linecap="round"/>
     </svg>
+    <span class="stat-label" aria-hidden="true">Words</span>
     <span class="stat-text">0</span>
   </span>
   <span class="separator">•</span>
-  <span class="stat" id="s-chars" data-label="Chars">
+  <span class="stat" id="s-chars" data-label="Chars" aria-label="Chars 0">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">
       <path d="M5 15L10 5l5 10M7 13h6" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
+    <span class="stat-label" aria-hidden="true">Chars</span>
     <span class="stat-text">0</span>
   </span>
   <span class="separator">•</span>
-  <span class="stat" id="s-pmids" data-label="PMIDs">
+  <span class="stat" id="s-pmids" data-label="PMIDs" aria-label="PMIDs 0">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">
       <rect x="4" y="4" width="12" height="12" rx="2"/>
       <path d="M7 8h6M7 11h4M7 14h6" stroke-linecap="round"/>
       <circle cx="13" cy="11" r="1.2"/>
     </svg>
+    <span class="stat-label" aria-hidden="true">PMIDs</span>
     <span class="stat-text">0</span>
   </span>
 </div>
@@ -256,6 +264,7 @@
   quill.on('selection-change', () => { redoLayout(); ensureCaretBelowTop() })
 
   // Stats
+  const STATUSBAR = $('#statusbar')
   const S_WORDS = $('#s-words'), S_CHARS = $('#s-chars'), S_PMIDS = $('#s-pmids')
   const pmidPattern = /(\[\s*PMID\s*:\s*(\d{7,9})\s*\])|(?:PMID\s*:\s*(\d{7,9}))|(?:PMID\s+(\d{7,9}))|(?:PMID(\d{7,9}))|\b(\d{7,9})\b/g
   const extractPMIDs = t => { const out = new Set(); let m; while ((m = pmidPattern.exec(t)) !== null) { const v = m[2]||m[3]||m[4]||m[5]||m[6]; if (v) out.add(v) } return [...out] }
@@ -263,9 +272,20 @@
   const updateStats = () => {
     const t = quill.getText().trim()
     const words = t ? t.split(/\s+/).length : 0
+    const chars = t.length
+    const pmidsCount = extractPMIDs(t).length
     S_WORDS.querySelector('.stat-text').textContent = words
-    S_CHARS.querySelector('.stat-text').textContent = t.length
-    S_PMIDS.querySelector('.stat-text').textContent = extractPMIDs(t).length
+    S_WORDS.setAttribute('aria-label', 'Words ' + words)
+    S_CHARS.querySelector('.stat-text').textContent = chars
+    S_CHARS.setAttribute('aria-label', 'Chars ' + chars)
+    S_PMIDS.querySelector('.stat-text').textContent = pmidsCount
+    S_PMIDS.setAttribute('aria-label', 'PMIDs ' + pmidsCount)
+    if (STATUSBAR) {
+      const totalDigits = words.toString().length + chars.toString().length + pmidsCount.toString().length
+      const basePad = 16 + Math.min(12, Math.max(0, totalDigits - 3)) * 1.2
+      STATUSBAR.style.setProperty('--pill-pad', basePad + 'px')
+      STATUSBAR.style.setProperty('--pill-pad-expanded', basePad + 16 + 'px')
+    }
   }
 
   // Highlight PMIDs without breaking typing
