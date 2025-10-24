@@ -37,9 +37,11 @@
   #topbar { backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); border-color: var(--toolbar-border); box-shadow: 0 6px 18px rgba(0,0,0,.08) inset, 0 6px 18px rgba(0,0,0,.08) }
 
   /* FLOATING STATUSBAR PILL */
-  #statusbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 18px; border-radius: 9999px; border: 1px solid var(--toolbar-border); backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12); flex-wrap: nowrap }
+  #statusbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; display: inline-flex; align-items: center; justify-content: center; gap: 14px; padding: 10px 20px; border-radius: 9999px; border: 1px solid var(--toolbar-border); backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12); flex-wrap: nowrap }
   .dark #statusbar { box-shadow: 0 14px 36px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.45) }
   #statusbar span { white-space: nowrap }
+  #statusbar .stat { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums }
+  #statusbar .stat svg { flex-shrink: 0 }
 
   /* Quill toolbar visuals */
   /* Quill will add .ql-toolbar automatically to #toolbar after initialization */
@@ -131,11 +133,28 @@
 
 <!-- Floating status pill -->
 <div id="statusbar" class="text-sm text-gray-700 dark:text-gray-300">
-  <span id="s-words">Words 0</span>
-  <span>•</span>
-  <span id="s-chars">Chars 0</span>
-  <span>•</span>
-  <span id="s-pmids">PMIDs 0</span>
+  <span class="stat" id="s-words" data-label="Words">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">
+      <path d="M4 5h12M4 10h9M4 15h8" stroke-linecap="round"/>
+    </svg>
+    <span class="stat-text">0</span>
+  </span>
+  <span class="separator">•</span>
+  <span class="stat" id="s-chars" data-label="Chars">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">
+      <path d="M5 15L10 5l5 10M7 13h6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="stat-text">0</span>
+  </span>
+  <span class="separator">•</span>
+  <span class="stat" id="s-pmids" data-label="PMIDs">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">
+      <rect x="4" y="4" width="12" height="12" rx="2"/>
+      <path d="M7 8h6M7 11h4M7 14h6" stroke-linecap="round"/>
+      <circle cx="13" cy="11" r="1.2"/>
+    </svg>
+    <span class="stat-text">0</span>
+  </span>
 </div>
 
 <!-- Popup -->
@@ -235,9 +254,9 @@
   const updateStats = () => {
     const t = quill.getText().trim()
     const words = t ? t.split(/\s+/).length : 0
-    S_WORDS.textContent = 'Words ' + words
-    S_CHARS.textContent = 'Chars ' + t.length
-    S_PMIDS.textContent = 'PMIDs ' + extractPMIDs(t).length
+    S_WORDS.querySelector('.stat-text').textContent = words
+    S_CHARS.querySelector('.stat-text').textContent = t.length
+    S_PMIDS.querySelector('.stat-text').textContent = extractPMIDs(t).length
   }
 
   // Highlight PMIDs without breaking typing
