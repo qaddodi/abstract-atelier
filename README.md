@@ -12,7 +12,7 @@ Elegant single-page editor for curating PubMed abstracts with Quill, PMID helper
 
 ## Getting Started
 1. Clone or download this repository.
-2. Open `PMID Text Editor v2.3.html` in any modern browser (Chrome, Edge, Firefox, Safari).
+2. Open `index.html` in any modern browser (Chrome, Edge, Firefox, Safari).
 3. Begin editing directly in the main canvas—changes stay local to your browser.
 
 ## Usage Tips
@@ -23,4 +23,4 @@ Elegant single-page editor for curating PubMed abstracts with Quill, PMID helper
 ## Development Notes
 - Tailwind CSS and Quill are loaded via CDN; no build step is required.
 - The project uses localStorage to remember the chosen theme.
-- To customize styling, edit `PMID Text Editor v2.3.html` and adjust the embedded `<style>` and `<script>` blocks.
+- To customize styling, edit `index.html` and adjust the embedded `<style>` and `<script>` blocks.
