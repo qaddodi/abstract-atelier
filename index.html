@@ -50,7 +50,7 @@
 
   /* Quill toolbar visuals */
   /* Quill will add .ql-toolbar automatically to #toolbar after initialization */
-  .ql-toolbar { border: 0 !important; background: transparent !important; display: flex; align-items: center; justify-content: flex-start; gap: .5rem; overflow-x: auto; overflow-y: hidden; white-space: nowrap; flex-wrap: nowrap; scrollbar-width: thin; -webkit-overflow-scrolling: touch }
+  .ql-toolbar { border: 0 !important; background: transparent !important; display: flex; align-items: center; justify-content: center; gap: .5rem; overflow-x: auto; overflow-y: hidden; white-space: nowrap; flex-wrap: nowrap; scrollbar-width: thin; -webkit-overflow-scrolling: touch }
   .ql-toolbar .ql-formats { margin: 0; flex-shrink: 0; display: inline-flex; align-items: center; gap: .5rem }
   .ql-toolbar button, .ql-toolbar .ql-picker { height: 26px; flex-shrink: 0 }
   .ql-toolbar .ql-picker-label, .ql-toolbar button { display: inline-flex; align-items: center }
@@ -58,6 +58,9 @@
   .ql-toolbar .ql-fill { fill: #111827 }
   .dark .ql-toolbar .ql-stroke { stroke: #f5f5f6 }
   .dark .ql-toolbar .ql-fill { fill: #f5f5f6 }
+  @media (max-width: 640px) {
+    .ql-toolbar { justify-content: flex-start }
+  }
 
   /* PMID token */
   .ql-pmid { background: #dbeafe; color: var(--primary); border-radius: 6px; padding: 1px 6px; font-weight: 700; cursor: pointer; white-space: nowrap }
@@ -214,7 +217,23 @@
     modules: { toolbar: toolbarEl },
     formats: ['bold','italic','underline','list','align','pmid','size']
   })
-  requestAnimationFrame(() => quill.focus())
+  const getToolbarNode = () => {
+    if (!toolbarEl) return null
+    if (toolbarEl.classList.contains('ql-toolbar')) return toolbarEl
+    return toolbarEl.querySelector('.ql-toolbar')
+  }
+  const snapToolbarToStart = (behavior = 'auto') => {
+    const node = getToolbarNode()
+    if (!node) return
+    if (node.scrollWidth <= node.clientWidth) return
+    try {
+      node.scrollTo({ left: 0, behavior })
+    } catch (_) {
+      node.scrollLeft = 0
+    }
+  }
+  requestAnimationFrame(() => { quill.focus(); snapToolbarToStart('auto') })
+  window.addEventListener('resize', () => snapToolbarToStart('auto'), { passive: true })
 
   // Safe getter for the scrolling container
   const getScroller = () => quill.scrollingContainer || quill.root?.parentElement || document.querySelector('#editor .ql-editor')?.parentElement || null
