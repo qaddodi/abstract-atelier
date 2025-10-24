@@ -50,9 +50,9 @@
 
   /* Quill toolbar visuals */
   /* Quill will add .ql-toolbar automatically to #toolbar after initialization */
-  .ql-toolbar { border: 0 !important; background: transparent !important; display: flex; align-items: center; justify-content: center; gap: .5rem; overflow-x: auto; white-space: nowrap }
-  .ql-toolbar .ql-formats { margin: 0 }
-  .ql-toolbar button, .ql-toolbar .ql-picker { height: 26px }
+  .ql-toolbar { border: 0 !important; background: transparent !important; display: flex; align-items: center; justify-content: flex-start; gap: .5rem; overflow-x: auto; overflow-y: hidden; white-space: nowrap; flex-wrap: nowrap; scrollbar-width: thin; -webkit-overflow-scrolling: touch }
+  .ql-toolbar .ql-formats { margin: 0; flex-shrink: 0; display: inline-flex; align-items: center; gap: .5rem }
+  .ql-toolbar button, .ql-toolbar .ql-picker { height: 26px; flex-shrink: 0 }
   .ql-toolbar .ql-picker-label, .ql-toolbar button { display: inline-flex; align-items: center }
   .ql-toolbar .ql-stroke { stroke: #111827 }
   .ql-toolbar .ql-fill { fill: #111827 }
@@ -156,9 +156,9 @@
   <span class="separator">•</span>
   <span class="stat" id="s-pmids" data-label="PMIDs" aria-label="PMIDs 0">
     <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" class="h-4 w-4">
-      <rect x="4" y="4" width="12" height="12" rx="2"/>
-      <path d="M7 8h6M7 11h4M7 14h6" stroke-linecap="round"/>
-      <circle cx="13" cy="11" r="1.2"/>
+      <path d="M6 4h6l3 3v9H6z" stroke-linejoin="round"/>
+      <path d="M12 4v3h3" stroke-linejoin="round"/>
+      <path d="M8 9h5M8 12h5M8 15h5" stroke-linecap="round"/>
     </svg>
     <span class="stat-label" aria-hidden="true">PMIDs</span>
     <span class="stat-text">0</span>
