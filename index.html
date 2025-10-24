@@ -37,8 +37,9 @@
   #topbar { backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); border-color: var(--toolbar-border); box-shadow: 0 6px 18px rgba(0,0,0,.08) inset, 0 6px 18px rgba(0,0,0,.08) }
 
   /* FLOATING STATUSBAR PILL */
-  #statusbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 14px; border-radius: 9999px; border: 1px solid var(--toolbar-border); backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12) }
+  #statusbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 18px; border-radius: 9999px; border: 1px solid var(--toolbar-border); backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12); flex-wrap: nowrap }
   .dark #statusbar { box-shadow: 0 14px 36px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.45) }
+  #statusbar span { white-space: nowrap }
 
   /* Quill toolbar visuals */
   /* Quill will add .ql-toolbar automatically to #toolbar after initialization */
