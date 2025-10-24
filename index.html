@@ -289,6 +289,25 @@
     printWindow.document.close()
     printWindow.focus()
   }
+  const showCopySuccess = () => {
+    if (copyBtn) copyBtn.classList.add('bg-emerald-600','text-white')
+    if (copyIcon) {
+      copyIcon.setAttribute('data-original', copyIcon.innerHTML)
+      copyIcon.innerHTML = '<path d="M9 16.2 5.5 12.7l1.4-1.4 2.1 2.1 4.2-4.2 1.4 1.4-5.6 5.6z"/>'
+      copyIcon.setAttribute('viewBox', '0 0 24 24')
+      copyIcon.setAttribute('fill', 'currentColor')
+      copyIcon.classList.add('scale-110')
+    }
+    setTimeout(() => {
+      if (copyBtn) copyBtn.classList.remove('bg-emerald-600','text-white')
+      if (copyIcon) {
+        copyIcon.innerHTML = '<path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-1 16H8V7h11v14z"/>'
+        copyIcon.setAttribute('viewBox', '0 0 24 24')
+        copyIcon.setAttribute('fill', 'currentColor')
+        copyIcon.classList.remove('scale-110')
+      }
+    }, 800)
+  }
   const copyHtml = async () => {
     const clone = document.createElement('div')
     clone.innerHTML = quill.root.innerHTML
@@ -300,26 +319,29 @@
     clipboardItems.push(new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }) }))
     try {
       await navigator.clipboard.write(clipboardItems)
-      if (copyBtn) copyBtn.classList.add('bg-emerald-600','text-white')
-      if (copyIcon) {
-        copyIcon.setAttribute('data-original', copyIcon.innerHTML)
-        copyIcon.innerHTML = '<path d="M9 16.2 5.5 12.7l1.4-1.4 2.1 2.1 4.2-4.2 1.4 1.4-5.6 5.6z"/>'
-        copyIcon.setAttribute('viewBox', '0 0 24 24')
-        copyIcon.setAttribute('fill', 'currentColor')
-        copyIcon.classList.add('scale-110')
-      }
-      setTimeout(() => {
-        if (copyBtn) copyBtn.classList.remove('bg-emerald-600','text-white')
-        if (copyIcon) {
-          copyIcon.innerHTML = '<path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-1 16H8V7h11v14z"/>'
-          copyIcon.setAttribute('viewBox', '0 0 24 24')
-          copyIcon.setAttribute('fill', 'currentColor')
-          copyIcon.classList.remove('scale-110')
-        }
-      }, 800)
+      showCopySuccess()
     } catch (err) {
-      console.error('Copy failed', err)
-      alert('Unable to copy. Please ensure clipboard permissions are granted.')
+      console.warn('Navigator clipboard write failed, attempting fallback.', err)
+      const temp = document.createElement('div')
+      temp.contentEditable = 'true'
+      temp.style.position = 'fixed'
+      temp.style.left = '-9999px'
+      temp.innerHTML = html
+      document.body.appendChild(temp)
+      const selection = window.getSelection()
+      const range = document.createRange()
+      range.selectNodeContents(temp)
+      selection.removeAllRanges()
+      selection.addRange(range)
+      const success = document.execCommand('copy')
+      selection.removeAllRanges()
+      document.body.removeChild(temp)
+      if (success) {
+        showCopySuccess()
+      } else {
+        console.error('Fallback copy failed')
+        alert('Unable to copy. Please ensure clipboard permissions are granted.')
+      }
     }
   }
   if (exportBtn) exportBtn.addEventListener('click', exportPdf)
