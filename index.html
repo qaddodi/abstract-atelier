@@ -29,7 +29,9 @@
 
   /* Quill base polishing */
   .ql-container { border: 0 !important; background: transparent }
-  .ql-editor { font-size: 18px; line-height: 1.8; background: transparent; color: #111827 }
+  .ql-editor { font-size: 16px; line-height: 1.55; background: transparent; color: #111827 }
+  .ql-editor p { margin-bottom: .75em }
+  .ql-editor p:last-child { margin-bottom: 0 }
   .ql-container.ql-snow:focus-within,
   .ql-editor:focus,
   .ql-editor:focus-visible,
@@ -37,6 +39,8 @@
   .dark .ql-editor { color: #e5e7f5 }
   .ql-editor a { text-decoration-color: rgba(37,99,235,.45) }
   .ql-editor a:hover { text-decoration-color: rgba(29,78,216,.6) }
+  .ql-editor ol, .ql-editor ul { margin-bottom: .75em; padding-left: 1.25em }
+  .ql-editor li { margin-bottom: .35em }
 
   /* Toolbar translucent with shadows */
   #topbar { backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); border-color: var(--toolbar-border); box-shadow: 0 6px 18px rgba(0,0,0,.08) inset, 0 6px 18px rgba(0,0,0,.08) }
@@ -322,10 +326,12 @@
   <meta charset="utf-8">
   <title>Abstract Atelier Export</title>
   <style>
-    body { font-family: "Inter", Arial, sans-serif; margin: 40px; line-height: 1.6; font-size: 12pt; color: #111827; }
-    h1, h2, h3 { color: #0f172a; }
+    body { font-family: "Inter", Arial, sans-serif; margin: 40px; line-height: 1.5; font-size: 11pt; color: #111827; }
+    h1, h2, h3 { color: #0f172a; margin-bottom: .6em; }
     a { color: #1d4ed8; text-decoration: underline; }
-    ul, ol { padding-left: 1.5rem; }
+    p { margin-bottom: .6em; }
+    ul, ol { padding-left: 1.25rem; margin-bottom: .75em; }
+    li { margin-bottom: .35em; }
   </style>
 </head>
 <body>${clone.innerHTML}</body>
@@ -632,14 +638,7 @@
       window.addEventListener('resize', () => {
         if (!popup.classList.contains('hidden') && anchor) placePopup(anchor.getBoundingClientRect())
       })
-      quill.root.addEventListener('click', event => {
-        const target = event.target.closest('.ql-pmid')
-        if (!target) return
-        event.preventDefault()
-        event.stopPropagation()
-        clearTimeout(hideId)
-        showPopup(target)
-      })
+      // Clicks should behave like standard text selection; no special handling.
     }
 
     const init = () => {
