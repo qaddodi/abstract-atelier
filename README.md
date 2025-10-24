@@ -1,5 +1,5 @@
 # Abstract Atelier
-Made by Mohammad Almeqdadi
+Made by Mohammad Almeqdadi, MD
 
 Elegant single-page editor for curating PubMed abstracts with Quill, PMID helpers, and polished dark/light theming.
 
