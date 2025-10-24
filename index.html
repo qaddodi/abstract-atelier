@@ -345,7 +345,14 @@
   window.addEventListener('resize', () => { if (!popup.classList.contains('hidden') && anchor) placePopup(anchor.getBoundingClientRect()) })
 
   // Click a PMID to open PubMed
-  quill.root.addEventListener('click', e => { const t = e.target.closest('.ql-pmid'); if (!t) return; const id = t.getAttribute('data-pmid'); if (id) window.open('https://pubmed.ncbi.nlm.nih.gov/' + id + '/', '_blank') })
+  quill.root.addEventListener('click', e => {
+    const t = e.target.closest('.ql-pmid')
+    if (!t) return
+    e.preventDefault()
+    e.stopPropagation()
+    clearTimeout(hideId)
+    showPopup(t)
+  })
 
 </script>
 </body>
