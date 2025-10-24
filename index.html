@@ -206,9 +206,18 @@
     modules: { toolbar: toolbarEl },
     formats: ['bold','italic','underline','list','align','pmid','size']
   })
+  requestAnimationFrame(() => quill.focus())
 
   // Safe getter for the scrolling container
   const getScroller = () => quill.scrollingContainer || quill.root?.parentElement || document.querySelector('#editor .ql-editor')?.parentElement || null
+  const smoothScrollBy = (el, dy) => {
+    if (!dy) return
+    try {
+      el.scrollTo({ top: el.scrollTop + dy, behavior: 'smooth' })
+    } catch (_) {
+      el.scrollTop += dy
+    }
+  }
 
   // Layout sizing for min viewport height minus top bar only
   const topbarEl = document.getElementById('topbar')
@@ -238,7 +247,7 @@
     const range = quill.getSelection()
     if (!range) return
     const b = quill.getBounds(range.index, range.length)
-    if (b && typeof b.top === 'number' && b.top < ANCHOR_TOP_PX) scroller.scrollTop += b.top - ANCHOR_TOP_PX
+    if (b && typeof b.top === 'number' && b.top < ANCHOR_TOP_PX) smoothScrollBy(scroller, b.top - ANCHOR_TOP_PX)
   }
 
   const redoLayout = () => { setMinHeights(); recalcAnchors() }
