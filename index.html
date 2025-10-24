@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Abstract Atelier</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' }
+</script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Mono:wght@500;700&display=swap" rel="stylesheet">
+<!-- Quill CSS -->
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
+<style>
+  :root { --primary: #007aff; --toolbar-bg: rgba(255,255,255,.65); --toolbar-border: rgba(0,0,0,.06); --guide-line: rgba(15,23,42,.12) }
+  .dark:root { --toolbar-bg: rgba(3,7,18,.65); --toolbar-border: rgba(255,255,255,.12); --guide-line: rgba(148,163,184,.22) }
+  body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #fdfcf7 }
+  .dark body { background: #0b1120 }
+  /* Smoothen theme transitions for key UI surfaces */
+  /* :root, body, .ql-editor, #topbar, #statusbar, #popup, .infinite-fade-top, main::before, main::after {
+    transition: background-color 5s ease, color .1s ease;
+  } */
+
+  /* Header title */
+  .header-title { font-family: 'Fira Mono', monospace; letter-spacing: -0.02em }
+
+  /* Quill base polishing */
+  .ql-container { border: 0 !important; background: transparent }
+  .ql-editor { font-size: 18px; line-height: 1.8; background: transparent; color: #111827 }
+  .dark .ql-editor { color: #e5e7f5 }
+  .ql-editor a { text-decoration-color: rgba(37,99,235,.45) }
+  .ql-editor a:hover { text-decoration-color: rgba(29,78,216,.6) }
+
+  /* Toolbar translucent with shadows */
+  #topbar { backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); border-color: var(--toolbar-border); box-shadow: 0 6px 18px rgba(0,0,0,.08) inset, 0 6px 18px rgba(0,0,0,.08) }
+
+  /* FLOATING STATUSBAR PILL */
+  #statusbar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 8px 14px; border-radius: 9999px; border: 1px solid var(--toolbar-border); backdrop-filter: saturate(120%) blur(12px); -webkit-backdrop-filter: saturate(120%) blur(12px); background: var(--toolbar-bg); box-shadow: 0 10px 30px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.12) }
+  .dark #statusbar { box-shadow: 0 14px 36px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.45) }
+
+  /* Quill toolbar visuals */
+  /* Quill will add .ql-toolbar automatically to #toolbar after initialization */
+  .ql-toolbar { border: 0 !important; background: transparent !important; display: flex; align-items: center; justify-content: center; gap: .5rem; overflow-x: auto; white-space: nowrap }
+  .ql-toolbar .ql-formats { margin: 0 }
+  .ql-toolbar button, .ql-toolbar .ql-picker { height: 26px }
+  .ql-toolbar .ql-picker-label, .ql-toolbar button { display: inline-flex; align-items: center }
+  .ql-toolbar .ql-stroke { stroke: #111827 }
+  .ql-toolbar .ql-fill { fill: #111827 }
+  .dark .ql-toolbar .ql-stroke { stroke: #f5f5f6 }
+  .dark .ql-toolbar .ql-fill { fill: #f5f5f6 }
+
+  /* PMID token */
+  .ql-pmid { background: #dbeafe; color: var(--primary); border-radius: 6px; padding: 1px 6px; font-weight: 700; cursor: pointer; white-space: nowrap }
+  .dark .ql-pmid { background: #1e3a8a; color: #93c5fd }
+
+  /* Editor host and infinite look */
+  #editor-card { border: 0 !important; box-shadow: none !important; background: transparent }
+  #editor-shell { min-height: 0 }
+  main { position: relative }
+  main::before, main::after {
+    content: '';
+    position: absolute;
+    top: -60px;
+    bottom: -120px;
+    width: 2px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent 0%, var(--guide-line) 14%, var(--guide-line) 86%, transparent 100%);
+    opacity: .6;
+  }
+  main::before { left: clamp(0.75rem, 4vw, 1.5rem); transform: translateX(-0.75rem) }
+  main::after { right: clamp(0.75rem, 4vw, 1.5rem); transform: translateX(0.75rem) }
+
+  /* Top and bottom fades to imply infinite page */
+  .infinite-fade-top { pointer-events: none; position: fixed; left: 0; right: 0; top: calc(56px); height: 24px; z-index: 49; background: linear-gradient(to bottom, rgba(253,252,247,1), rgba(253,252,247,0)) }
+  .dark .infinite-fade-top { background: linear-gradient(to bottom, rgba(11,17,32,1), rgba(11,17,32,0)) }
+
+  /* Popup - translucent glass */
+  #popup { position: fixed; max-width: 640px; width: 92vw; background: rgba(255,255,255,.78); border: 1px solid rgba(0,0,0,.06); border-radius: 14px; backdrop-filter: saturate(120%) blur(10px); -webkit-backdrop-filter: saturate(120%) blur(10px); box-shadow: 0 20px 50px rgba(0,0,0,.25) }
+  .dark #popup { background: rgba(2,6,23,.78); border-color: rgba(255,255,255,.12); color: #e5e7eb; box-shadow: 0 20px 50px rgba(0,0,0,.5) }
+  #popup .abstract-box { border: 1px solid var(--toolbar-border); background: rgba(255,255,255,.55); }
+  .dark #popup .abstract-box { border-color: var(--toolbar-border); background: rgba(15,23,42,.45); }
+  .nice-scroll::-webkit-scrollbar { width: 10px }
+  .nice-scroll::-webkit-scrollbar-thumb { background: rgba(100,100,100,.35); border-radius: 8px }
+</style>
+</head>
+<body class="antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen selection:bg-blue-200 dark:selection:bg-blue-900">
+
+<!-- Top bar: Title + Theme toggle + Quill toolbar (centered) -->
+<div id="topbar" class="fixed top-0 inset-x-0 z-50 border-b">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="h-14 flex items-center justify-center relative">
+      <h1 class="header-title text-xl font-bold text-stone-700 dark:text-stone-100">The Abstract Atelier</h1>
+      <button id="theme-toggle" aria-label="Toggle theme" class="absolute right-2 p-2 rounded-full bg-black/5 dark:bg-white/10"></button>
+    </div>
+  </div>
+  <!-- Important: Use a dedicated toolbar container with a stable id. Do NOT pre-apply .ql-toolbar -->
+  <div id="toolbar">
+    <span class="ql-formats">
+      <button class="ql-bold"></button>
+      <button class="ql-italic"></button>
+      <button class="ql-underline"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-list" value="ordered"></button>
+      <button class="ql-list" value="bullet"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-align" value=""></button>
+      <button class="ql-align" value="center"></button>
+      <button class="ql-align" value="right"></button>
+      <button class="ql-align" value="justify"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-clean"></button>
+    </span>
+  </div>
+</div>
+
+<!-- Main -->
+<main class="max-w-3xl mx-auto px-4 md:px-8 pt-28 pb-24 overflow-visible">
+  <div id="editor-card">
+    <div id="editor-shell">
+      <div id="editor"></div>
+    </div>
+  </div>
+</main>
+<div class="infinite-fade-top"></div>
+
+<!-- Floating status pill -->
+<div id="statusbar" class="text-sm text-gray-700 dark:text-gray-300">
+  <span id="s-words">Words 0</span>
+  <span>•</span>
+  <span id="s-chars">Chars 0</span>
+  <span>•</span>
+  <span id="s-pmids">PMIDs 0</span>
+</div>
+
+<!-- Popup -->
+<div id="popup" class="hidden p-4 shadow-2xl"></div>
+
+<!-- Quill JS -->
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+<script>
+  const $ = s => document.querySelector(s)
+  const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+  // Theme toggle with persistence
+  ;(() => {
+    const root = document.documentElement
+    const body = document.body
+    const btn = $('#theme-toggle')
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    let isDark = localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && prefersDark)
+    const sun = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>'
+    const moon = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
+    const apply = () => { isDark ? root.classList.add('dark') : root.classList.remove('dark'); isDark ? body.classList.add('dark') : body.classList.remove('dark'); btn.innerHTML = isDark ? sun : moon }
+    apply()
+    btn.addEventListener('click', () => { isDark = !root.classList.contains('dark'); apply(); localStorage.setItem('theme', isDark ? 'dark' : 'light') })
+  })()
+
+  // Register PMID inline blot
+  const Inline = Quill.import('blots/inline')
+  class PMIDBlot extends Inline {
+    static create(val) { const node = super.create(); if (val && val !== true) node.setAttribute('data-pmid', val); node.classList.add('ql-pmid'); return node }
+    static formats(node) { return node.getAttribute('data-pmid') || false }
+  }
+  PMIDBlot.blotName = 'pmid'
+  PMIDBlot.tagName = 'span'
+  Quill.register(PMIDBlot, true)
+
+  // Size whitelist
+  const Size = Quill.import('attributors/style/size')
+  Size.whitelist = ['12px','14px','16px','18px','20px','22px','24px','26px','28px']
+  Quill.register(Size, true)
+
+  // Init editor with a verified toolbar element
+  const toolbarEl = document.getElementById('toolbar')
+  if (!toolbarEl) {
+    throw new Error('Toolbar container #toolbar not found in DOM at init time')
+  }
+  const quill = new Quill('#editor', {
+    theme: 'snow',
+    placeholder: '',
+    modules: { toolbar: toolbarEl },
+    formats: ['bold','italic','underline','list','align','pmid','size']
+  })
+
+  // Safe getter for the scrolling container
+  const getScroller = () => quill.scrollingContainer || quill.root?.parentElement || document.querySelector('#editor .ql-editor')?.parentElement || null
+
+  // Layout sizing for min viewport height minus top bar only
+  const topbarEl = document.getElementById('topbar')
+  const editorShell = document.getElementById('editor-shell')
+
+  const setMinHeights = () => {
+    const topH = topbarEl?.offsetHeight || 0
+    const bottomH = 0
+    const H = Math.max(0, window.innerHeight - topH - bottomH)
+    if (editorShell) editorShell.style.minHeight = H + 'px'
+    const editorEl = document.querySelector('#editor .ql-editor')
+    if (editorEl) editorEl.style.minHeight = H + 'px'
+  }
+
+  // Anchored near top behavior
+  const recalcAnchors = () => {
+    const scroller = getScroller()
+    if (!scroller) return
+    scroller.style.paddingTop = '16px'
+    scroller.style.paddingBottom = '24px'
+  }
+
+  const ANCHOR_TOP_PX = 16
+  const ensureCaretBelowTop = () => {
+    const scroller = getScroller()
+    if (!scroller) return
+    const range = quill.getSelection()
+    if (!range) return
+    const b = quill.getBounds(range.index, range.length)
+    if (b && typeof b.top === 'number' && b.top < ANCHOR_TOP_PX) scroller.scrollTop += b.top - ANCHOR_TOP_PX
+  }
+
+  const redoLayout = () => { setMinHeights(); recalcAnchors() }
+  requestAnimationFrame(redoLayout)
+  window.addEventListener('resize', redoLayout, { passive: true })
+  quill.on('selection-change', () => { redoLayout(); ensureCaretBelowTop() })
+
+  // Stats
+  const S_WORDS = $('#s-words'), S_CHARS = $('#s-chars'), S_PMIDS = $('#s-pmids')
+  const pmidPattern = /(\[\s*PMID\s*:\s*(\d{7,9})\s*\])|(?:PMID\s*:\s*(\d{7,9}))|(?:PMID\s+(\d{7,9}))|(?:PMID(\d{7,9}))|\b(\d{7,9})\b/g
+  const extractPMIDs = t => { const out = new Set(); let m; while ((m = pmidPattern.exec(t)) !== null) { const v = m[2]||m[3]||m[4]||m[5]||m[6]; if (v) out.add(v) } return [...out] }
+
+  const updateStats = () => {
+    const t = quill.getText().trim()
+    const words = t ? t.split(/\s+/).length : 0
+    S_WORDS.textContent = 'Words ' + words
+    S_CHARS.textContent = 'Chars ' + t.length
+    S_PMIDS.textContent = 'PMIDs ' + extractPMIDs(t).length
+  }
+
+  // Highlight PMIDs without breaking typing
+  const highlightPMIDs = () => {
+    const t = quill.getText()
+    const len = quill.getLength()
+    const sel = quill.getSelection()
+    quill.formatText(0, len, 'pmid', false, 'silent')
+    let m
+    while ((m = pmidPattern.exec(t)) !== null) {
+      const pmid = m[2]||m[3]||m[4]||m[5]||m[6]
+      if (!pmid) continue
+      quill.formatText(m.index, m[0].length, 'pmid', pmid, 'silent')
+    }
+    if (sel) quill.setSelection(sel.index, sel.length, 'silent')
+  }
+
+  // Debounce helper
+  const debounce = (fn, d=120) => { let id; return (...a) => { clearTimeout(id); id = setTimeout(() => fn(...a), d) } }
+  const refresh = debounce(() => { highlightPMIDs(); updateStats(); ensureCaretBelowTop() }, 60)
+  quill.on('text-change', refresh)
+  updateStats(); highlightPMIDs(); redoLayout()
+
+  // Hover popup
+  const popup = $('#popup')
+  let hideId = null, anchor = null
+  const placePopup = rect => {
+    const vw = innerWidth, vh = innerHeight, pad = 16
+    const topbarBottom = topbarEl ? topbarEl.getBoundingClientRect().bottom : 0
+    const w = Math.min(640, vw * .92), h = Math.min(480, popup.offsetHeight || 300)
+    let left = rect.left + rect.width/2 - w/2
+    left = Math.max(pad, Math.min(left, vw - w - pad))
+    let top = rect.bottom + pad
+    const bottomLimit = vh - pad
+    if (top + h > bottomLimit) {
+      const aboveTop = rect.top - h - pad
+      if (aboveTop >= topbarBottom + pad) {
+        top = aboveTop
+      } else {
+        top = bottomLimit - h
+      }
+    }
+    top = Math.max(top, topbarBottom + pad)
+    if (top + h > bottomLimit) top = Math.max(topbarBottom + pad, bottomLimit - h)
+    popup.style.left = left + 'px'
+    popup.style.top = top + 'px'
+    popup.style.width = w + 'px'
+    popup.style.maxHeight = '70vh'
+  }
+
+  const fetchWithRetry = async (url, tries=3) => {
+    for (let i = 0; i < tries; i++) {
+      try { const r = await fetch(url); if (!r.ok) throw new Error('' + r.status); return await r.text() } catch (e) { if (i === tries - 1) throw e; await sleep(500 * (i+1)) }
+    }
+  }
+
+  const showPopup = async el => {
+    const pmid = el.getAttribute('data-pmid')
+    if (!pmid) return
+    anchor = el
+    popup.classList.remove('hidden')
+    popup.innerHTML = '<div class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading abstract</span></div>'
+    placePopup(el.getBoundingClientRect())
+    try {
+      const url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=' + pmid + '&rettype=abstract&retmode=xml'
+      const xml = await fetchWithRetry(url)
+      const doc = new DOMParser().parseFromString(xml, 'text/xml')
+      const art = doc.querySelector('PubmedArticle')
+      if (!art) throw new Error('No article')
+      const title = art.querySelector('ArticleTitle')?.textContent || 'Title not found'
+      const journal = art.querySelector('Title')?.textContent || ''
+      const year = art.querySelector('PubDate Year')?.textContent || art.querySelector('ArticleDate Year')?.textContent || ''
+      const vol = art.querySelector('Volume')?.textContent || ''
+      const iss = art.querySelector('Issue')?.textContent || ''
+      const pgs = art.querySelector('MedlinePgn')?.textContent || ''
+      const cite = [journal, year, vol + (iss? '('+iss+')':'') , pgs].filter(Boolean).join(' ')
+      let authors = [...art.querySelectorAll('Author')].map(a => ((a.querySelector('LastName')?.textContent||'') + ' ' + (a.querySelector('Initials')?.textContent||''))).filter(Boolean).join(', ')
+      if (!authors) authors = 'Authors not found'
+      if (authors.length > 140) authors = authors.slice(0,140) + '...'
+      let abstract = 'Abstract not found'
+      const absNodes = art.querySelectorAll('AbstractText')
+      if (absNodes.length) abstract = [...absNodes].map(n => (n.getAttribute('Label')? ('<strong>'+n.getAttribute('Label')+':</strong> '):'') + (n.textContent||'')).join('<br><br>')
+      popup.innerHTML = `
+        <div class="text-lg font-bold mb-1 leading-snug text-center">${title}</div>
+        <div class="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">${cite}</div>
+        <div class="text-sm text-gray-700 dark:text-gray-300 mb-3 text-center">${authors}</div>
+        <div class="abstract-box text-sm leading-relaxed nice-scroll max-h-60 overflow-y-auto rounded-lg px-3 py-3">${abstract}</div>
+        <div class="mt-3 flex items-center justify-center text-gray-700 dark:text-gray-300">
+          <a class="ql-pmid inline-flex items-center text-xs leading-none px-3 py-1 hover:underline" href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer">PMID: ${pmid}</a>
+        </div>
+      `
+      placePopup(el.getBoundingClientRect())
+    } catch (e) {
+      popup.innerHTML = '<div class="text-red-500">Error loading abstract</div>'
+      placePopup(el.getBoundingClientRect())
+    }
+  }
+
+  const hidePopup = () => { popup.classList.add('hidden'); anchor = null }
+
+  quill.root.addEventListener('mouseover', e => { const t = e.target.closest('.ql-pmid'); if (!t) return; clearTimeout(hideId); showPopup(t) })
+  quill.root.addEventListener('mouseout', e => { const t = e.target.closest('.ql-pmid'); if (!t) return; hideId = setTimeout(hidePopup, 220) })
+  popup.addEventListener('mouseenter', () => clearTimeout(hideId))
+  popup.addEventListener('mouseleave', () => hideId = setTimeout(hidePopup, 220))
+  window.addEventListener('scroll', () => { if (!popup.classList.contains('hidden') && anchor) placePopup(anchor.getBoundingClientRect()) }, { passive: true })
+  window.addEventListener('resize', () => { if (!popup.classList.contains('hidden') && anchor) placePopup(anchor.getBoundingClientRect()) })
+
+  // Click a PMID to open PubMed
+  quill.root.addEventListener('click', e => { const t = e.target.closest('.ql-pmid'); if (!t) return; const id = t.getAttribute('data-pmid'); if (id) window.open('https://pubmed.ncbi.nlm.nih.gov/' + id + '/', '_blank') })
+
+</script>
+</body>
+</html>
