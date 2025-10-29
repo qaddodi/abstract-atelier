@@ -480,6 +480,7 @@
       const extractPMIDs = text => {
         const out = new Set()
         let match
+        pmidPattern.lastIndex = 0
         while ((match = pmidPattern.exec(text)) !== null) {
           const value = match[2] || match[3] || match[4] || match[5] || match[6]
           if (value) out.add(value)
@@ -487,18 +488,40 @@
         return [...out]
       }
       const updateStats = () => {
-        const text = quill.getText().trim()
-        const words = text ? text.split(/\s+/).length : 0
-        const chars = text.length
-        const pmidCount = extractPMIDs(text).length
-        wordsStat.querySelector('.stat-text').textContent = words
-        wordsStat.setAttribute('aria-label', 'Words ' + words)
-        charsStat.querySelector('.stat-text').textContent = chars
-        charsStat.setAttribute('aria-label', 'Chars ' + chars)
-        pmidsStat.querySelector('.stat-text').textContent = pmidCount
-        pmidsStat.setAttribute('aria-label', 'PMIDs ' + pmidCount)
+        const text = quill.getText()
+        const trimmedText = text.trim()
+        const words = trimmedText ? trimmedText.split(/\s+/).length : 0
+        const chars = trimmedText.length
+        const pmidCount = extractPMIDs(trimmedText).length
+        const selection = quill.getSelection()
+        let selectionWords = 0
+        let selectionChars = 0
+        let selectionPmids = 0
+        const hasSelection = !!(selection && selection.length > 0)
+        if (hasSelection) {
+          const selectionText = quill.getText(selection.index, selection.length)
+          const trimmedSelection = selectionText.trim()
+          selectionWords = trimmedSelection ? trimmedSelection.split(/\s+/).length : 0
+          selectionChars = trimmedSelection.length
+          selectionPmids = extractPMIDs(trimmedSelection).length
+        }
+        const formatStatText = (selectionValue, totalValue) => {
+          if (!hasSelection) return String(totalValue)
+          return selectionValue + '/' + totalValue
+        }
+        const wordsDisplay = formatStatText(selectionWords, words)
+        const charsDisplay = formatStatText(selectionChars, chars)
+        const pmidsDisplay = formatStatText(selectionPmids, pmidCount)
+        wordsStat.querySelector('.stat-text').textContent = wordsDisplay
+        wordsStat.setAttribute('aria-label', 'Words ' + wordsDisplay)
+        charsStat.querySelector('.stat-text').textContent = charsDisplay
+        charsStat.setAttribute('aria-label', 'Chars ' + charsDisplay)
+        pmidsStat.querySelector('.stat-text').textContent = pmidsDisplay
+        pmidsStat.setAttribute('aria-label', 'PMIDs ' + pmidsDisplay)
         if (!statusbar) return
-        const totalDigits = words.toString().length + chars.toString().length + pmidCount.toString().length
+        const statDigits = [wordsDisplay, charsDisplay, pmidsDisplay]
+          .reduce((sum, value) => sum + value.replace(/[^\d]/g, '').length, 0)
+        const totalDigits = statDigits + (hasSelection ? 3 : 0)
         const basePad = 16 + Math.min(12, Math.max(0, totalDigits - 3)) * 1.2
         statusbar.style.setProperty('--pill-pad', basePad + 'px')
         statusbar.style.setProperty('--pill-pad-expanded', basePad + 16 + 'px')
@@ -522,6 +545,9 @@
         ensureCaretBelowTop()
       }, 60)
       quill.on('text-change', refresh)
+      quill.on('selection-change', () => {
+        updateStats()
+      })
       updateStats()
       highlightPMIDs()
     }
