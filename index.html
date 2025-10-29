@@ -58,6 +58,7 @@
   #statusbar .stat-label { opacity: 0; font-size: .65rem; letter-spacing: .04em; text-transform: uppercase; color: inherit; max-width: 0; overflow: hidden; margin-left: 0; transition: opacity .22s ease, transform .22s ease, max-width .22s ease, margin-left .22s ease; transform: translateY(4px) }
   #statusbar:hover .stat-label,
   #statusbar:focus-within .stat-label { opacity: .75; transform: translateY(0); max-width: 40px; margin-left: 4px }
+  #statusbar .stat-total { font-weight: 600 }
 
   /* Quill toolbar visuals */
   /* Quill will add .ql-toolbar automatically to #toolbar after initialization */
@@ -505,22 +506,28 @@
           selectionChars = trimmedSelection.length
           selectionPmids = extractPMIDs(trimmedSelection).length
         }
-        const formatStatText = (selectionValue, totalValue) => {
-          if (!hasSelection) return String(totalValue)
-          return selectionValue + '/' + totalValue
+        const renderStat = (statEl, selectionValue, totalValue, label) => {
+          const statTextEl = statEl.querySelector('.stat-text')
+          if (!statTextEl) return
+          statTextEl.innerHTML = ''
+          if (hasSelection) {
+            statTextEl.append(document.createTextNode(selectionValue + '/'))
+          }
+          const totalSpan = document.createElement('span')
+          totalSpan.className = 'stat-total'
+          totalSpan.textContent = totalValue
+          statTextEl.append(totalSpan)
+          const labelValue = hasSelection ? selectionValue + '/' + totalValue : totalValue
+          statEl.setAttribute('aria-label', label + ' ' + labelValue)
         }
-        const wordsDisplay = formatStatText(selectionWords, words)
-        const charsDisplay = formatStatText(selectionChars, chars)
-        const pmidsDisplay = formatStatText(selectionPmids, pmidCount)
-        wordsStat.querySelector('.stat-text').textContent = wordsDisplay
-        wordsStat.setAttribute('aria-label', 'Words ' + wordsDisplay)
-        charsStat.querySelector('.stat-text').textContent = charsDisplay
-        charsStat.setAttribute('aria-label', 'Chars ' + charsDisplay)
-        pmidsStat.querySelector('.stat-text').textContent = pmidsDisplay
-        pmidsStat.setAttribute('aria-label', 'PMIDs ' + pmidsDisplay)
+        renderStat(wordsStat, selectionWords, words, 'Words')
+        renderStat(charsStat, selectionChars, chars, 'Chars')
+        renderStat(pmidsStat, selectionPmids, pmidCount, 'PMIDs')
         if (!statusbar) return
-        const statDigits = [wordsDisplay, charsDisplay, pmidsDisplay]
-          .reduce((sum, value) => sum + value.replace(/[^\d]/g, '').length, 0)
+        const statDigits = (hasSelection
+          ? [selectionWords, words, selectionChars, chars, selectionPmids, pmidCount]
+          : [words, chars, pmidCount])
+          .reduce((sum, value) => sum + String(value).length, 0)
         const totalDigits = statDigits + (hasSelection ? 3 : 0)
         const basePad = 16 + Math.min(12, Math.max(0, totalDigits - 3)) * 1.2
         statusbar.style.setProperty('--pill-pad', basePad + 'px')
