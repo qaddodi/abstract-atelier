@@ -559,6 +559,44 @@
       highlightPMIDs()
     }
 
+    const initPersistence = quill => {
+      const STORAGE_KEY = 'abstract-atelier:content'
+      let canPersist = true
+      const save = debounce(() => {
+        if (!canPersist) return
+        try {
+          const delta = quill.getContents()
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(delta))
+        } catch (error) {
+          canPersist = false
+          console.warn('Unable to persist editor state', error)
+        }
+      }, 300)
+      let stored = null
+      try {
+        stored = localStorage.getItem(STORAGE_KEY)
+      } catch (error) {
+        canPersist = false
+        console.warn('Unable to access stored editor state', error)
+      }
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored)
+          if (parsed && typeof parsed === 'object') {
+            quill.setContents(parsed)
+          }
+        } catch (error) {
+          console.warn('Stored editor state is invalid; clearing it', error)
+          try {
+            localStorage.removeItem(STORAGE_KEY)
+          } catch (_) {}
+        }
+      }
+      quill.on('text-change', () => {
+        save()
+      })
+    }
+
     const fetchWithRetry = async (url, tries = 3) => {
       for (let i = 0; i < tries; i++) {
         try {
@@ -690,6 +728,7 @@
       initCopy(quill)
       const { ensureCaretBelowTop, topbarEl } = initLayout(quill)
       initStatsAndHighlighting(quill, ensureCaretBelowTop)
+      initPersistence(quill)
       initPopup(quill, topbarEl)
     }
 
