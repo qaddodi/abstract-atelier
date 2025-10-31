@@ -83,7 +83,7 @@
   }
 
   /* PMID token */
-  .ql-pmid { background: #dbeafe; color: var(--primary); border-radius: 6px; padding: 1px 6px; font-weight: 700; cursor: pointer; white-space: nowrap }
+  .ql-pmid { background: #dbeafe; color: var(--primary); border-radius: 6px; padding: 1px 6px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: color .18s ease, background-color .18s ease, text-decoration-color .18s ease }
   .dark .ql-pmid { background: #1e3a8a; color: #93c5fd }
 
   /* Editor host and infinite look */
@@ -114,6 +114,56 @@
   .dark #popup .abstract-box { border-color: var(--toolbar-border); background: rgba(15,23,42,.45); }
   .nice-scroll::-webkit-scrollbar { width: 10px }
   .nice-scroll::-webkit-scrollbar-thumb { background: rgba(100,100,100,.35); border-radius: 8px }
+  #pmid-sidebar { --pmid-sidebar-width: 260px; display: flex; flex-direction: column; position: sticky; top: calc((var(--topbar-height, 0px)) + 24px); max-height: calc(100vh - (var(--topbar-height, 0px) + 72px)); min-height: 220px; width: var(--pmid-sidebar-width); padding: 20px; border-radius: 20px; border: 1px solid rgba(15,23,42,.08); background: rgba(255,255,255,.72); backdrop-filter: saturate(130%) blur(18px); -webkit-backdrop-filter: saturate(130%) blur(18px); box-shadow: 0 18px 46px rgba(15,23,42,.14); overflow-y: auto; overflow-x: hidden; transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, margin-right .32s ease, transform .32s ease, opacity .22s ease }
+  .dark #pmid-sidebar { border-color: rgba(148,163,184,.22); background: rgba(15,23,42,.68); box-shadow: 0 24px 60px rgba(0,0,0,.55) }
+  #pmid-sidebar::-webkit-scrollbar { width: 8px }
+  #pmid-sidebar::-webkit-scrollbar-thumb { background: rgba(100,116,139,.35); border-radius: 9999px }
+  .dark #pmid-sidebar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.35) }
+  .pmid-sidebar-header { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 16px; text-align: center }
+  .pmid-sidebar-title { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .26em; color: #0f172a }
+  .dark .pmid-sidebar-title { color: #f8fafc }
+  .pmid-sidebar-count { font-size: .68rem; color: #64748b; letter-spacing: .18em }
+  .dark .pmid-sidebar-count { color: #94a3b8 }
+  #pmid-card-list { display: flex; flex-direction: column; gap: 14px }
+  .pmid-empty-state { font-size: .75rem; color: #64748b; text-align: center; line-height: 1.4; margin-top: 24px }
+  .dark .pmid-empty-state { color: #a1accf }
+  .pmid-card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(15,23,42,.08); background: rgba(255,255,255,.55); transition: transform .18s ease, border-color .18s ease, background-color .18s ease, box-shadow .18s ease; cursor: pointer; text-align: left; appearance: none; -webkit-appearance: none; font-size: .78rem }
+  .pmid-card:hover, .pmid-card.is-hovered, .pmid-card:focus-visible { border-color: rgba(220,38,38,.65); background: rgba(254,242,242,.8); box-shadow: inset 0 0 0 1px rgba(220,38,38,.2); outline: none }
+  .dark .pmid-card { border-color: rgba(148,163,184,.15); background: rgba(15,23,42,.55) }
+  .dark .pmid-card:hover, .dark .pmid-card.is-hovered, .dark .pmid-card:focus-visible { border-color: rgba(248,113,113,.65); background: rgba(127,29,29,.55); box-shadow: inset 0 0 0 1px rgba(248,113,113,.25) }
+  .pmid-card-meta { display: flex; align-items: center; gap: 6px; font-size: .62rem; text-transform: uppercase; letter-spacing: .16em; color: #0f172a; opacity: .7; flex-wrap: wrap }
+  .pmid-card-title { font-size: .8rem; font-weight: 600; line-height: 1.3; color: #0f172a }
+  .pmid-card-journal { font-size: .68rem; color: #475569; letter-spacing: .08em; text-transform: uppercase }
+  .pmid-card-loading { font-size: .68rem; color: #64748b }
+  .pmid-card-error { font-size: .68rem; color: #dc2626 }
+  .dark .pmid-card-title { color: #f1f5f9 }
+  .dark .pmid-card-meta { color: #e2e8f0 }
+  .dark .pmid-card-journal { color: #a5b4fc }
+  .dark .pmid-card-loading { color: #cbd5f5 }
+  .dark .pmid-card-error { color: #fca5a5 }
+  .pmid-inline-highlight { color: #dc2626 !important; background: rgba(254,226,226,.95) !important }
+  .dark .pmid-inline-highlight { color: #f87171 !important; background: rgba(127,29,29,.5) !important }
+  #workspace-shell { --workspace-gap: 1.5rem; --editor-min-width: 320px; transition: padding .32s ease; }
+  #workspace-shell > .flex-1 {
+    flex: 0 0 max(var(--editor-min-width), calc(100% - var(--pmid-sidebar-width, 260px) - var(--workspace-gap, 1.5rem)));
+    width: max(var(--editor-min-width), calc(100% - var(--pmid-sidebar-width, 260px) - var(--workspace-gap, 1.5rem)));
+    max-width: max(var(--editor-min-width), calc(100% - var(--pmid-sidebar-width, 260px) - var(--workspace-gap, 1.5rem)));
+    margin-left: 0;
+    margin-right: 0;
+    transition: margin .32s ease, max-width .32s ease;
+  }
+  body.pmid-sidebar-collapsed #pmid-sidebar { opacity: 0; transform: translateX(-32px); margin-right: calc(-1 * (var(--pmid-sidebar-width, 260px) + var(--workspace-gap, 1.5rem))); pointer-events: none }
+  body.pmid-sidebar-collapsed #workspace-shell > .flex-1 {
+    margin-left: calc((var(--pmid-sidebar-width, 260px) + var(--workspace-gap, 1.5rem)) / 2);
+    margin-right: calc((var(--pmid-sidebar-width, 260px) + var(--workspace-gap, 1.5rem)) / 2);
+  }
+  body:not(.pmid-sidebar-ready) #pmid-sidebar,
+  body:not(.pmid-sidebar-ready) #workspace-shell > .flex-1 { transition: none !important }
+  @media (max-width: 767px) {
+    #pmid-sidebar { display: none }
+    #toggle-sidebar { display: none }
+    #workspace-shell > .flex-1 { flex: 1 1 auto; width: 100%; max-width: 100%; margin: 0 !important }
+  }
 </style>
 </head>
 <body class="antialiased bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen selection:bg-blue-200 dark:selection:bg-blue-900">
@@ -130,6 +180,11 @@
   <div id="toolbar">
     <span class="ql-formats">
       <button id="theme-toggle" type="button" aria-label="Toggle theme" class="ql-custom-btn ql-theme-btn"></button>
+      <button id="toggle-sidebar" type="button" aria-label="Hide citations panel" aria-controls="pmid-sidebar" aria-expanded="true" class="ql-custom-btn">
+        <svg id="sidebar-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="currentColor">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M9.94531 1.25H14.0551C15.4227 1.24998 16.525 1.24996 17.3919 1.36652C18.292 1.48754 19.0499 1.74643 19.6518 2.34835C20.2538 2.95027 20.5126 3.70814 20.6337 4.60825C20.7502 5.47522 20.7502 6.57754 20.7502 7.94513V16.0549C20.7502 17.4225 20.7502 18.5248 20.6337 19.3918C20.5126 20.2919 20.2538 21.0497 19.6518 21.6517C19.0499 22.2536 18.292 22.5125 17.3919 22.6335C16.525 22.75 15.4226 22.75 14.0551 22.75H9.94532C8.57773 22.75 7.4754 22.75 6.60844 22.6335C5.70833 22.5125 4.95045 22.2536 4.34854 21.6517C3.74662 21.0497 3.48773 20.2919 3.36671 19.3918C3.32801 19.1039 3.30216 18.7902 3.2849 18.4494C3.24582 18.326 3.23821 18.1912 3.26895 18.0568C3.25016 17.4649 3.25017 16.7991 3.25019 16.0549V7.94513C3.25017 6.57754 3.25015 5.47522 3.36671 4.60825C3.48773 3.70814 3.74662 2.95027 4.34854 2.34835C4.95045 1.74643 5.70833 1.48754 6.60843 1.36652C7.4754 1.24996 8.57772 1.24998 9.94531 1.25ZM4.77694 18.2491C4.79214 18.6029 4.81597 18.914 4.85333 19.1919C4.95199 19.9257 5.13243 20.3142 5.4092 20.591C5.68596 20.8678 6.07453 21.0482 6.80831 21.1469C7.56366 21.2484 8.56477 21.25 10.0002 21.25H14.0002C15.4356 21.25 16.4367 21.2484 17.1921 21.1469C17.9258 21.0482 18.3144 20.8678 18.5912 20.591C18.7875 20.3947 18.9353 20.1421 19.0399 19.75H8.00019C7.58597 19.75 7.25019 19.4142 7.25019 19C7.25019 18.5858 7.58597 18.25 8.00019 18.25H19.2234C19.2419 17.819 19.2477 17.3246 19.2494 16.75H7.89796C6.91971 16.75 6.5777 16.7564 6.31562 16.8267C5.5963 17.0194 5.02286 17.5541 4.77694 18.2491ZM19.2502 15.25H7.89796C7.85879 15.25 7.8202 15.25 7.78217 15.25C6.9642 15.2497 6.40605 15.2495 5.92739 15.3778C5.49941 15.4925 5.10242 15.6798 4.75019 15.9259V8C4.75019 6.56458 4.75178 5.56347 4.85333 4.80812C4.95199 4.07435 5.13243 3.68577 5.4092 3.40901C5.68596 3.13225 6.07453 2.9518 6.80831 2.85315C7.56366 2.75159 8.56477 2.75 10.0002 2.75H14.0002C15.4356 2.75 16.4367 2.75159 17.1921 2.85315C17.9258 2.9518 18.3144 3.13225 18.5912 3.40901C18.8679 3.68577 19.0484 4.07435 19.147 4.80812C19.2486 5.56347 19.2502 6.56458 19.2502 8V15.25ZM7.25019 7C7.25019 6.58579 7.58597 6.25 8.00019 6.25H16.0002C16.4144 6.25 16.7502 6.58579 16.7502 7C16.7502 7.41421 16.4144 7.75 16.0002 7.75H8.00019C7.58597 7.75 7.25019 7.41421 7.25019 7ZM7.25019 10.5C7.25019 10.0858 7.58597 9.75 8.00019 9.75H13.0002C13.4144 9.75 13.7502 10.0858 13.7502 10.5C13.7502 10.9142 13.4144 11.25 13.0002 11.25H8.00019C7.58597 11.25 7.25019 10.9142 7.25019 10.5Z" fill="currentColor"></path>
+        </svg>
+      </button>
       <button id="copy-html" type="button" aria-label="Copy as HTML" class="ql-custom-btn">
         <svg id="copy-icon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" viewBox="0 0 24 24" fill="currentColor">
           <path d="M16 1H4a2 2 0 0 0-2 2v14h2V3h12V1zm3 4H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2zm-1 16H8V7h11v14z"/>
@@ -162,10 +217,22 @@
 </div>
 
 <!-- Main -->
-<main class="max-w-3xl mx-auto px-4 md:px-8 pt-28 pb-24 overflow-visible">
-  <div id="editor-card">
-    <div id="editor-shell">
-      <div id="editor"></div>
+<main class="max-w-6xl mx-auto px-4 md:px-8 pt-28 pb-24 overflow-visible">
+  <div id="workspace-shell" class="flex flex-col md:flex-row md:items-start gap-6">
+    <aside id="pmid-sidebar" class="nice-scroll" aria-label="PMID citations panel">
+      <div class="pmid-sidebar-header">
+        <span class="pmid-sidebar-title">Citations</span>
+        <span id="pmid-sidebar-count" class="pmid-sidebar-count">0</span>
+      </div>
+      <div id="pmid-card-list"></div>
+      <div id="pmid-sidebar-empty" class="pmid-empty-state">Add a PMID citation in your text to see it here.</div>
+    </aside>
+    <div class="flex-1 min-w-0">
+      <div id="editor-card">
+        <div id="editor-shell">
+          <div id="editor"></div>
+        </div>
+      </div>
     </div>
   </div>
 </main>
@@ -213,6 +280,114 @@
     const icons = {
       sun: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>',
       moon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
+    }
+
+    const pmidMetadataCache = new Map()
+    const metadataQueue = []
+    let metadataWorkerActive = false
+
+    const processMetadataQueue = () => {
+      if (metadataWorkerActive) return
+      const next = metadataQueue.shift()
+      if (!next) return
+      metadataWorkerActive = true
+      const { pmid, resolve, reject, attempt } = next
+      fetchPmidMetadataNow(pmid)
+        .then(data => {
+          resolve(data)
+        })
+        .catch(error => {
+          if (attempt < 2) {
+            metadataQueue.push({ pmid, resolve, reject, attempt: attempt + 1 })
+          } else {
+            reject(error)
+          }
+        })
+        .finally(() => {
+          metadataWorkerActive = false
+          setTimeout(processMetadataQueue, 360)
+        })
+    }
+
+    const enqueueMetadataFetch = pmid => new Promise((resolve, reject) => {
+      metadataQueue.push({ pmid, resolve, reject, attempt: 0 })
+      processMetadataQueue()
+    })
+
+    const extractUniquePMIDs = text => {
+      if (!text) return []
+      const seen = new Set()
+      const ordered = []
+      pmidPattern.lastIndex = 0
+      let match
+      while ((match = pmidPattern.exec(text)) !== null) {
+        const value = match[2] || match[3] || match[4] || match[5] || match[6]
+        if (value && !seen.has(value)) {
+          seen.add(value)
+          ordered.push(value)
+        }
+      }
+      return ordered
+    }
+
+    const fetchPmidMetadataNow = async pmid => {
+      const url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=' + pmid + '&rettype=abstract&retmode=xml'
+      const xml = await fetchWithRetry(url)
+      const doc = new DOMParser().parseFromString(xml, 'text/xml')
+      const article = doc.querySelector('PubmedArticle')
+      if (!article) throw new Error('No article data for PMID ' + pmid)
+      const getText = selector => article.querySelector(selector)?.textContent?.trim() || ''
+      const title = getText('ArticleTitle') || 'Title not found'
+      const journalTitle = getText('Journal > Title')
+      const journalAbbrev = getText('MedlineTA') || getText('ISOAbbreviation') || journalTitle
+      const yearRaw = getText('Journal > JournalIssue > PubDate > Year') || getText('ArticleDate > Year')
+      const medlineDate = getText('Journal > JournalIssue > PubDate > MedlineDate')
+      const yearFallback = medlineDate ? ((medlineDate.match(/\d{4}/) || [])[0] || '') : ''
+      const year = yearRaw || yearFallback
+      const volume = getText('Journal > JournalIssue > Volume')
+      const issue = getText('Journal > JournalIssue > Issue')
+      const pages = getText('Article > Pagination > MedlinePgn')
+      const authorNodes = article.querySelectorAll('AuthorList > Author')
+      const authors = [...authorNodes].map(author => {
+        const last = author.querySelector('LastName')?.textContent?.trim() || ''
+        const initials = author.querySelector('Initials')?.textContent?.trim() || ''
+        return (last + (initials ? ' ' + initials : '')).trim()
+      }).filter(Boolean)
+      const authorsFull = authors.length ? authors.join(', ') : 'Authors not found'
+      let authorsDisplay = authorsFull
+      if (authorsDisplay.length > 140) authorsDisplay = authorsDisplay.slice(0, 137) + '...'
+      const abstractNodes = article.querySelectorAll('AbstractText')
+      const abstractSegments = [...abstractNodes].map(node => {
+        const label = node.getAttribute('Label')
+        const prefix = label ? '<strong>' + label + ':</strong> ' : ''
+        return prefix + (node.textContent || '').trim()
+      }).filter(Boolean)
+      const abstractHtml = abstractSegments.join('<br><br>')
+      const citeVolume = volume ? volume + (issue ? '(' + issue + ')' : '') : ''
+      const citationParts = [journalAbbrev || journalTitle, year, citeVolume, pages].filter(Boolean)
+      return {
+        pmid,
+        title,
+        journalTitle,
+        journalAbbrev,
+        year,
+        volume,
+        issue,
+        pages,
+        citation: citationParts.join(' '),
+        authorsFull,
+        authorsDisplay,
+        abstractHtml
+      }
+    }
+
+    const fetchPmidMetadata = pmid => {
+      if (!pmid) return Promise.reject(new Error('Invalid PMID'))
+      if (pmidMetadataCache.has(pmid)) return pmidMetadataCache.get(pmid)
+      const promise = enqueueMetadataFetch(pmid)
+      pmidMetadataCache.set(pmid, promise)
+      promise.catch(() => pmidMetadataCache.delete(pmid))
+      return promise
     }
 
     const debounce = (fn, delay = 120) => {
@@ -271,11 +446,56 @@
         btn.classList.remove('ql-active')
       }
       render()
+      requestAnimationFrame(() => {
+        document.body.classList.add('pmid-sidebar-ready')
+      })
       btn.addEventListener('click', () => {
         isDark = !root.classList.contains('dark')
         render()
         localStorage.setItem('theme', isDark ? 'dark' : 'light')
       })
+    }
+
+    const initSidebarToggle = sidebar => {
+      const btn = $('#toggle-sidebar')
+      const icon = $('#sidebar-icon')
+      if (!btn || !sidebar) return
+      const STORAGE_KEY = 'abstract-atelier:sidebar-visibility'
+      const readStoredState = () => {
+        try {
+          return localStorage.getItem(STORAGE_KEY) === 'collapsed'
+        } catch (_) {
+          return false
+        }
+      }
+      let collapsed = readStoredState()
+      const render = () => {
+        document.body.classList.toggle('pmid-sidebar-collapsed', collapsed)
+        sidebar.setAttribute('aria-hidden', collapsed ? 'true' : 'false')
+        btn.setAttribute('aria-label', collapsed ? 'Show citations panel' : 'Hide citations panel')
+        btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
+        btn.classList.toggle('ql-active', !collapsed)
+        if (icon) icon.classList.toggle('opacity-80', collapsed)
+      }
+      render()
+      if (window.matchMedia('(max-width: 767px)').matches) {
+        collapsed = true
+        render()
+      }
+      btn.addEventListener('click', () => {
+        collapsed = !collapsed
+        render()
+        try {
+          localStorage.setItem(STORAGE_KEY, collapsed ? 'collapsed' : 'expanded')
+        } catch (_) {}
+      })
+      const mq = window.matchMedia('(max-width: 767px)')
+      const handleMedia = event => {
+        if (!event.matches) return
+        collapsed = true
+        render()
+      }
+      mq.addEventListener ? mq.addEventListener('change', handleMedia) : mq.addListener(handleMedia)
     }
 
     const initQuill = () => {
@@ -478,22 +698,12 @@
       const charsStat = $('#s-chars')
       const pmidsStat = $('#s-pmids')
       if (!wordsStat || !charsStat || !pmidsStat) return
-      const extractPMIDs = text => {
-        const out = new Set()
-        let match
-        pmidPattern.lastIndex = 0
-        while ((match = pmidPattern.exec(text)) !== null) {
-          const value = match[2] || match[3] || match[4] || match[5] || match[6]
-          if (value) out.add(value)
-        }
-        return [...out]
-      }
       const updateStats = () => {
         const text = quill.getText()
         const trimmedText = text.trim()
         const words = trimmedText ? trimmedText.split(/\s+/).length : 0
         const chars = trimmedText.length
-        const pmidCount = extractPMIDs(trimmedText).length
+        const pmidCount = extractUniquePMIDs(trimmedText).length
         const selection = quill.getSelection()
         let selectionWords = 0
         let selectionChars = 0
@@ -504,7 +714,7 @@
           const trimmedSelection = selectionText.trim()
           selectionWords = trimmedSelection ? trimmedSelection.split(/\s+/).length : 0
           selectionChars = trimmedSelection.length
-          selectionPmids = extractPMIDs(trimmedSelection).length
+          selectionPmids = extractUniquePMIDs(trimmedSelection).length
         }
         const renderStat = (statEl, selectionValue, totalValue, label) => {
           const statTextEl = statEl.querySelector('.stat-text')
@@ -557,6 +767,202 @@
       })
       updateStats()
       highlightPMIDs()
+    }
+
+    const initPmidSidebar = quill => {
+      const sidebar = $('#pmid-sidebar')
+      const listEl = sidebar ? $('#pmid-card-list', sidebar) : null
+      const countEl = sidebar ? $('#pmid-sidebar-count', sidebar) : null
+      const emptyState = sidebar ? $('#pmid-sidebar-empty', sidebar) : null
+      if (!sidebar || !listEl || !countEl || !emptyState) return
+
+      let activePmid = null
+      let activeCard = null
+      const cardMap = new Map()
+
+      const toggleInlineHighlight = (pmid, active) => {
+        if (!pmid) return
+        document.querySelectorAll('.ql-pmid[data-pmid="' + pmid + '"]').forEach(node => {
+          node.classList.toggle('pmid-inline-highlight', active)
+        })
+      }
+
+      const setActive = (pmid, card) => {
+        if (activePmid === pmid && activeCard === card) return
+        if (activePmid) toggleInlineHighlight(activePmid, false)
+        if (activeCard) activeCard.classList.remove('is-hovered')
+        activePmid = pmid || null
+        activeCard = card || null
+        if (activePmid && activeCard) {
+          toggleInlineHighlight(activePmid, true)
+          activeCard.classList.add('is-hovered')
+        }
+      }
+
+      const clearActive = () => setActive(null, null)
+
+      const scrollInlineIntoView = pmid => {
+        if (!pmid) return
+        const target = quill.root.querySelector('.ql-pmid[data-pmid="' + pmid + '"]')
+        if (!target) return
+        const scroller = quill.scrollingContainer
+          || quill.root?.parentElement
+          || document.querySelector('#editor .ql-editor')?.parentElement
+          || document.documentElement
+        const isDocument = scroller === document.documentElement || scroller === document.body
+        const scrollerRect = !isDocument && scroller.getBoundingClientRect ? scroller.getBoundingClientRect() : { top: 0 }
+        const targetRect = target.getBoundingClientRect()
+        const currentScrollTop = isDocument ? window.scrollY : (scroller.scrollTop || 0)
+        const topbar = document.getElementById('topbar')
+        const cssTopbar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-height')) || 0
+        const topbarHeight = (topbar?.offsetHeight || cssTopbar || 0)
+        const offsetMargin = topbarHeight + 24
+        const destination = Math.max(0, (targetRect.top - scrollerRect.top) + currentScrollTop - offsetMargin)
+        try {
+          if (isDocument) {
+            window.scrollTo({ top: destination, behavior: 'smooth' })
+          } else {
+            scroller.scrollTo({ top: destination, behavior: 'smooth' })
+          }
+        } catch (_) {
+          if (isDocument) {
+            window.scrollTo(0, destination)
+          } else {
+            scroller.scrollTop = destination
+          }
+        }
+        const blot = Quill.find(target, true)
+        if (blot && quill.scroll) {
+          const index = blot.offset(quill.scroll)
+          quill.setSelection(index, blot.length(), 'silent')
+        }
+        quill.focus()
+      }
+
+      const bindInteractions = card => {
+        card.addEventListener('mouseenter', () => setActive(card.dataset.pmid, card))
+        card.addEventListener('mouseleave', clearActive)
+        card.addEventListener('focus', () => setActive(card.dataset.pmid, card))
+        card.addEventListener('blur', clearActive)
+        card.addEventListener('click', event => {
+          event.preventDefault()
+          const pmid = card.dataset.pmid
+          if (!pmid) return
+          setActive(pmid, card)
+          scrollInlineIntoView(pmid)
+        })
+        card.addEventListener('keydown', event => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          const pmid = card.dataset.pmid
+          if (!pmid) return
+          setActive(pmid, card)
+          scrollInlineIntoView(pmid)
+        })
+      }
+
+      const buildCard = pmid => {
+        const card = document.createElement('button')
+        card.type = 'button'
+        card.className = 'pmid-card'
+        card.dataset.pmid = pmid
+        card.setAttribute('aria-label', 'PMID ' + pmid + ' (loading)')
+        card.innerHTML = `
+          <div class="pmid-card-meta">
+            <span>PMID ${pmid}</span>
+            <span class="pmid-card-year pmid-card-loading">•••</span>
+          </div>
+          <div class="pmid-card-title pmid-card-loading">Fetching citation…</div>
+          <div class="pmid-card-journal pmid-card-loading">Loading journal…</div>
+        `
+        bindInteractions(card)
+        return card
+      }
+
+      const applyMetadata = (card, metadata) => {
+        if (!card || !metadata) return
+        card.setAttribute('aria-label', 'PMID ' + (metadata.pmid || card.dataset.pmid || '') + ' · ' + (metadata.title || 'Citation'))
+        const yearEl = card.querySelector('.pmid-card-year')
+        if (yearEl) {
+          yearEl.textContent = metadata.year || '—'
+          yearEl.classList.remove('pmid-card-loading', 'pmid-card-error')
+        }
+        const titleEl = card.querySelector('.pmid-card-title')
+        if (titleEl) {
+          titleEl.textContent = metadata.title || 'Title unavailable'
+          titleEl.classList.remove('pmid-card-loading', 'pmid-card-error')
+        }
+        const journalEl = card.querySelector('.pmid-card-journal')
+        if (journalEl) {
+          journalEl.textContent = metadata.journalAbbrev || metadata.journalTitle || 'Journal unavailable'
+          journalEl.classList.remove('pmid-card-loading', 'pmid-card-error')
+        }
+      }
+
+      const applyError = card => {
+        if (!card) return
+        card.setAttribute('aria-label', 'PMID ' + (card.dataset.pmid || '') + ' unavailable')
+        const yearEl = card.querySelector('.pmid-card-year')
+        if (yearEl) {
+          yearEl.textContent = '—'
+          yearEl.classList.remove('pmid-card-loading')
+        }
+        const titleEl = card.querySelector('.pmid-card-title')
+        if (titleEl) {
+          titleEl.textContent = 'Unable to load citation'
+          titleEl.classList.remove('pmid-card-loading')
+          titleEl.classList.add('pmid-card-error')
+        }
+        const journalEl = card.querySelector('.pmid-card-journal')
+        if (journalEl) {
+          journalEl.textContent = 'Try again later.'
+          journalEl.classList.remove('pmid-card-loading')
+          journalEl.classList.add('pmid-card-error')
+        }
+      }
+
+      const updateSidebar = debounce(() => {
+        const pmids = extractUniquePMIDs(quill.getText())
+        countEl.textContent = pmids.length
+        emptyState.style.display = pmids.length ? 'none' : 'block'
+        sidebar.classList.toggle('has-items', pmids.length > 0)
+
+        if (!pmids.length) {
+          clearActive()
+          cardMap.forEach(card => {
+            if (card.parentElement === listEl) listEl.removeChild(card)
+          })
+          cardMap.clear()
+          return
+        }
+
+        const remaining = new Set(cardMap.keys())
+        pmids.forEach(pmid => {
+          remaining.delete(pmid)
+          if (!cardMap.has(pmid)) {
+            const card = buildCard(pmid)
+            cardMap.set(pmid, card)
+            fetchPmidMetadata(pmid)
+              .then(metadata => applyMetadata(card, metadata))
+              .catch(() => applyError(card))
+          }
+          const card = cardMap.get(pmid)
+          if (card) listEl.appendChild(card)
+        })
+
+        remaining.forEach(pmid => {
+          const card = cardMap.get(pmid)
+          if (card && card.parentElement === listEl) listEl.removeChild(card)
+          cardMap.delete(pmid)
+        })
+
+        if (activePmid && !cardMap.has(activePmid)) {
+          clearActive()
+        }
+      }, 160)
+
+      updateSidebar()
+      quill.on('text-change', updateSidebar)
     }
 
     const initPersistence = quill => {
@@ -645,42 +1051,19 @@
         popup.innerHTML = '<div class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading abstract</span></div>'
         placePopup(element.getBoundingClientRect())
         try {
-          const url = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=' + pmid + '&rettype=abstract&retmode=xml'
-          const xml = await fetchWithRetry(url)
-          const doc = new DOMParser().parseFromString(xml, 'text/xml')
-          const article = doc.querySelector('PubmedArticle')
-          if (!article) throw new Error('No article')
-          const title = article.querySelector('ArticleTitle')?.textContent || 'Title not found'
-          const journal = article.querySelector('Title')?.textContent || ''
-          const year = article.querySelector('PubDate Year')?.textContent || article.querySelector('ArticleDate Year')?.textContent || ''
-          const vol = article.querySelector('Volume')?.textContent || ''
-          const issue = article.querySelector('Issue')?.textContent || ''
-          const pages = article.querySelector('MedlinePgn')?.textContent || ''
-          const citation = [journal, year, vol + (issue ? '(' + issue + ')' : ''), pages].filter(Boolean).join(' ')
-          let authors = [...article.querySelectorAll('Author')].map(author => {
-            const last = author.querySelector('LastName')?.textContent || ''
-            const initials = author.querySelector('Initials')?.textContent || ''
-            return (last + ' ' + initials).trim()
-          }).filter(Boolean).join(', ')
-          if (!authors) authors = 'Authors not found'
-          if (authors.length > 140) authors = authors.slice(0, 140) + '...'
-          let abstract = ''
-          const abstractNodes = article.querySelectorAll('AbstractText')
-          if (abstractNodes.length) {
-            abstract = [...abstractNodes].map(node => {
-              const label = node.getAttribute('Label')
-              const prefix = label ? '<strong>' + label + ':</strong> ' : ''
-              return prefix + (node.textContent || '')
-            }).join('<br><br>')
-          }
-          const abstractMarkup = abstract
-            ? `<div class="abstract-box text-sm leading-relaxed nice-scroll max-h-60 overflow-y-auto rounded-lg px-3 py-3">${abstract}</div>`
+          const metadata = await fetchPmidMetadata(pmid)
+          const citationMarkup = metadata.citation
+            ? `<div class="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">${metadata.citation}</div>`
             : ''
-          const authorsSpacingClass = abstract ? 'mb-3' : 'mb-0'
+          const abstractMarkup = metadata.abstractHtml
+            ? `<div class="abstract-box text-sm leading-relaxed nice-scroll max-h-60 overflow-y-auto rounded-lg px-3 py-3">${metadata.abstractHtml}</div>`
+            : ''
+          const authorsText = metadata.authorsDisplay || 'Authors not found'
+          const authorsSpacingClass = metadata.abstractHtml ? 'mb-3' : 'mb-0'
           popup.innerHTML = `
-        <div class="text-lg font-bold mb-1 leading-snug text-center">${title}</div>
-        <div class="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">${citation}</div>
-        <div class="text-sm text-gray-700 dark:text-gray-300 ${authorsSpacingClass} text-center">${authors}</div>
+        <div class="text-lg font-bold mb-1 leading-snug text-center">${metadata.title}</div>
+        ${citationMarkup}
+        <div class="text-sm text-gray-700 dark:text-gray-300 ${authorsSpacingClass} text-center">${authorsText}</div>
         ${abstractMarkup}
         <div class="mt-3 flex items-center justify-center text-gray-700 dark:text-gray-300">
           <a class="ql-pmid inline-flex items-center text-xs leading-none px-3 py-1" href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer">PMID: ${pmid}</a>
@@ -723,11 +1106,14 @@
     const init = () => {
       initThemeToggle()
       const { quill, toolbarEl } = initQuill()
+      const sidebarEl = document.getElementById('pmid-sidebar')
+      initSidebarToggle(sidebarEl)
       setupToolbarSnap(toolbarEl, quill)
       initExport(quill)
       initCopy(quill)
       const { ensureCaretBelowTop, topbarEl } = initLayout(quill)
       initStatsAndHighlighting(quill, ensureCaretBelowTop)
+      initPmidSidebar(quill)
       initPersistence(quill)
       initPopup(quill, topbarEl)
     }
