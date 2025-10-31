@@ -29,14 +29,14 @@
 
   /* Quill base polishing */
   .ql-container { border: 0 !important; background: transparent }
-  .ql-editor { font-size: 16px; line-height: 1.5; background: transparent; color: #111827 }
+  .ql-editor { font-size: 16px; line-height: 1.5; background: transparent; color: #111827; caret-color: #2563eb !important }
   .ql-editor p { margin-bottom: .5em }
   .ql-editor p:last-child { margin-bottom: 0 }
   .ql-container.ql-snow:focus-within,
   .ql-editor:focus,
   .ql-editor:focus-visible,
   .ql-editor:-moz-focusring { outline: none !important; box-shadow: none !important }
-  .dark .ql-editor { color: #e5e7f5 }
+  .dark .ql-editor { color: #e5e7f5; caret-color: #93c5fd !important }
   .ql-editor a { text-decoration-color: rgba(37,99,235,.45) }
   .ql-editor a:hover { text-decoration-color: rgba(29,78,216,.6) }
   .ql-editor ol, .ql-editor ul { margin-bottom: .75em; padding-left: 1.25em }
@@ -526,9 +526,25 @@
           node.scrollLeft = 0
         }
       }
+      const placeCaretIfBlank = () => {
+        if (quill.getLength() > 1) return
+        try {
+          quill.setSelection(0, 0, 'api')
+        } catch (_) {}
+      }
+      quill.root.addEventListener('focus', placeCaretIfBlank)
       requestAnimationFrame(() => {
         quill.focus()
+        placeCaretIfBlank()
         snapToolbarToStart('auto')
+      })
+      setTimeout(() => {
+        if (!quill.hasFocus()) return
+        placeCaretIfBlank()
+      }, 150)
+      quill.on('text-change', () => {
+        if (quill.getLength() > 1) return
+        placeCaretIfBlank()
       })
       window.addEventListener('resize', () => snapToolbarToStart('auto'), { passive: true })
     }
