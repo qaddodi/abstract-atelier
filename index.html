@@ -245,6 +245,12 @@
   <div id="toolbar">
     <span class="ql-formats">
       <button id="theme-toggle" type="button" aria-label="Toggle theme" class="ql-custom-btn ql-theme-btn"></button>
+      <button id="view-toggle" type="button" aria-label="Enable view-only mode" class="ql-custom-btn ql-view-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </button>
       <button id="toggle-sidebar" type="button" aria-label="Hide citations panel" aria-controls="pmid-sidebar" aria-expanded="true" class="ql-custom-btn">
         <svg id="sidebar-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <path d="M7 4h7l3 3v13H7z" stroke-linejoin="round"></path>
@@ -347,12 +353,14 @@
     const PMID_PATTERN = /(\[\s*PMID\s*:\s*(\d{7,9})\s*\])|(?:PMID\s*:\s*(\d{7,9}))|(?:PMID\s+(\d{7,9}))|(?:PMID(\d{7,9}))|\b(\d{7,9})\b/g;
     const ICONS = {
       sun: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M6.34 17.66l-1.41 1.41"/><path d="M19.07 4.93l-1.41 1.41"/></svg>',
-      moon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
+      moon: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+      eye: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>'
     };
     const STORAGE_KEYS = {
       theme: 'theme',
       sidebar: 'abstract-atelier:sidebar-visibility',
-      content: 'abstract-atelier:content'
+      content: 'abstract-atelier:content',
+      viewMode: 'abstract-atelier:view-mode'
     };
 
     // Utilities
@@ -704,6 +712,37 @@
         render();
         localStorage.setItem(STORAGE_KEYS.theme, isDark ? 'dark' : 'light');
       });
+    };
+
+    const initViewToggle = quill => {
+      const btn = $('#view-toggle');
+      if (!btn || !quill) return;
+      const readStoredState = () => {
+        try {
+          return localStorage.getItem(STORAGE_KEYS.viewMode) === 'view';
+        } catch (_) {
+          return false;
+        }
+      };
+      let viewOnly = readStoredState();
+      const apply = () => {
+        quill.enable(!viewOnly);
+        quill.root.classList.toggle('ql-view-only', viewOnly);
+        document.body.classList.toggle('view-only-mode', viewOnly);
+        btn.classList.toggle('ql-active', viewOnly);
+        btn.innerHTML = ICONS.eye;
+        btn.setAttribute('aria-pressed', viewOnly ? 'true' : 'false');
+        btn.setAttribute('aria-label', viewOnly ? 'Switch to editing mode' : 'Enable view-only mode');
+        btn.title = viewOnly ? 'Switch to editing mode' : 'Enable view-only mode';
+        try {
+          localStorage.setItem(STORAGE_KEYS.viewMode, viewOnly ? 'view' : 'edit');
+        } catch (_) {}
+      };
+      btn.addEventListener('click', () => {
+        viewOnly = !viewOnly;
+        apply();
+      });
+      apply();
     };
 
     const initSidebarToggle = sidebar => {
@@ -1636,6 +1675,7 @@
     const init = () => {
       initThemeToggle();
       const { quill, toolbarEl } = initQuill();
+      initViewToggle(quill);
       const sidebarEl = document.getElementById('pmid-sidebar');
       initSidebarToggle(sidebarEl);
       setupToolbarSnap(toolbarEl, quill);
