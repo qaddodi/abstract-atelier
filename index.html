@@ -86,13 +86,13 @@
   .dark .ql-pmid { background: #1e3a8a; color: #93c5fd }
 
   /* Editor host and infinite look */
-  #editor-card { position: relative; width: 100%; max-width: var(--editor-track-max); margin-left: 0; margin-right: auto; border: 0 !important; box-shadow: none !important; background: transparent }
+  #editor-card { position: relative; width: 100%; max-width: var(--editor-track-max); margin-left: 0; margin-right: auto; border: 0 !important; box-shadow: none !important; background: transparent; overflow: clip }
   #editor-card::before,
   #editor-card::after {
     content: '';
     position: absolute;
-    top: -60px;
-    bottom: -120px;
+    top: 0;
+    bottom: 0;
     width: 2px;
     pointer-events: none;
     background: linear-gradient(to bottom, transparent 0%, var(--guide-line) 14%, var(--guide-line) 86%, transparent 100%);
@@ -255,7 +255,7 @@
 </div>
 
 <!-- Main -->
-<main class="max-w-6xl mx-auto px-4 md:px-8 pt-28 pb-24 overflow-visible">
+<main class="max-w-6xl mx-auto px-4 md:px-8 pt-28 pb-12 overflow-visible">
   <div id="workspace-shell" class="flex flex-col md:flex-row md:items-start gap-6">
     <aside id="pmid-sidebar" class="nice-scroll" aria-label="PMID citations panel">
       <div class="pmid-sidebar-header">
@@ -335,6 +335,77 @@
         clearTimeout(id);
         id = setTimeout(() => fn(...args), delay);
       };
+    };
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+    let cancelActiveScroll = null;
+    const animateScrollTo = (scroller, destination, { isDocument, duration = 520, easing = easeOutCubic } = {}) => {
+      if (!Number.isFinite(destination)) return;
+      const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+      const docEl = document.scrollingElement || document.documentElement || document.body;
+      const targetEl = isDocument ? docEl : scroller;
+      if (!targetEl) return;
+      if (cancelActiveScroll) cancelActiveScroll();
+      if (prefersReduced || typeof window.requestAnimationFrame !== 'function') {
+        if (isDocument) {
+          window.scrollTo(0, destination);
+          if (docEl) docEl.scrollTop = destination;
+          if (document.body) document.body.scrollTop = destination;
+        } else {
+          targetEl.scrollTop = destination;
+        }
+        cancelActiveScroll = null;
+        return;
+      }
+      const raf = window.requestAnimationFrame.bind(window);
+      const caf = window.cancelAnimationFrame.bind(window);
+      const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      const start = isDocument
+        ? (window.scrollY ?? window.pageYOffset ?? docEl?.scrollTop ?? document.body?.scrollTop ?? 0)
+        : (targetEl.scrollTop || 0);
+      const distance = destination - start;
+      if (Math.abs(distance) < 1) {
+        if (isDocument) {
+          window.scrollTo(0, destination);
+          if (docEl) docEl.scrollTop = destination;
+          if (document.body) document.body.scrollTop = destination;
+        } else {
+          targetEl.scrollTop = destination;
+        }
+        cancelActiveScroll = null;
+        return;
+      }
+      const startTime = now();
+      let rafId = null;
+      const cancel = () => {
+        if (rafId !== null) caf(rafId);
+        cancelActiveScroll = null;
+      };
+      const step = timestamp => {
+        const elapsed = duration > 0 ? Math.min(1, (timestamp - startTime) / duration) : 1;
+        const progress = easing ? easing(elapsed) : elapsed;
+        const value = start + (distance * progress);
+        if (isDocument) {
+          window.scrollTo(0, value);
+          if (docEl) docEl.scrollTop = value;
+          if (document.body) document.body.scrollTop = value;
+        } else {
+          targetEl.scrollTop = value;
+        }
+        if (elapsed < 1) {
+          rafId = raf(step);
+        } else {
+          if (isDocument) {
+            window.scrollTo(0, destination);
+            if (docEl) docEl.scrollTop = destination;
+            if (document.body) document.body.scrollTop = destination;
+          } else {
+            targetEl.scrollTop = destination;
+          }
+          cancel();
+        }
+      };
+      cancelActiveScroll = cancel;
+      rafId = raf(step);
     };
     const fetchWithRetry = async (url, tries = 3) => {
       for (let i = 0; i < tries; i++) {
@@ -753,8 +824,8 @@
       const recalcAnchors = () => {
         const scroller = getScroller();
         if (!scroller) return;
-        scroller.style.paddingTop = '16px';
-        scroller.style.paddingBottom = '24px';
+        scroller.style.paddingTop = '0px';
+        scroller.style.paddingBottom = '0px';
       };
       const ANCHOR_TOP_PX = 16;
       const ensureCaretBelowTop = () => {
@@ -865,6 +936,7 @@
       let activePmid = null;
       let activeCard = null;
       const cardMap = new Map();
+      const mentionCycleIndex = new Map();
 
       const formatAriaLabel = (card, baseLabel) => {
         if (!card || !baseLabel) return;
@@ -915,8 +987,12 @@
         if (activePmid === pmid && activeCard === card) return;
         if (activePmid) toggleInlineHighlight(activePmid, false);
         if (activeCard) activeCard.classList.remove('is-hovered');
+        const previousPmid = activePmid;
         activePmid = pmid || null;
         activeCard = card || null;
+        if (activePmid && previousPmid !== activePmid) {
+          mentionCycleIndex.set(activePmid, -1);
+        }
         if (activePmid && activeCard) {
           toggleInlineHighlight(activePmid, true);
           activeCard.classList.add('is-hovered');
@@ -925,33 +1001,73 @@
 
       const clearActive = () => setActive(null, null);
 
-      const scrollInlineIntoView = pmid => {
+      const scrollInlineIntoView = (pmid, options = {}) => {
         if (!pmid) return;
-        const target = quill.root.querySelector(`.ql-pmid[data-pmid="${pmid}"]`);
+        const { cycle = false, duration = 640, easing = easeOutCubic } = options;
+        const mentions = Array.from(quill.root.querySelectorAll(`.ql-pmid[data-pmid="${pmid}"]`));
+        if (!mentions.length) return;
+
+        let index = mentionCycleIndex.get(pmid);
+        if (!Number.isInteger(index)) index = -1;
+        if (cycle) {
+          index = (index + 1) % mentions.length;
+        } else if (index < 0 || index >= mentions.length) {
+          index = 0;
+        }
+        mentionCycleIndex.set(pmid, index);
+
+        const target = mentions[index];
         if (!target) return;
-        const scroller = quill.scrollingContainer || quill.root?.parentElement || document.querySelector('#editor .ql-editor')?.parentElement || document.documentElement;
-        const isDocument = scroller === document.documentElement || scroller === document.body;
-        const scrollerRect = !isDocument && scroller.getBoundingClientRect ? scroller.getBoundingClientRect() : { top: 0 };
+
+        // Choose the correct scroller. Fall back to the document if the editor container is not scrollable.
+        let scroller = quill.scrollingContainer || document.documentElement;
+        const docEl = document.documentElement;
+        const body = document.body;
+        let isDocument = (scroller === docEl || scroller === body);
+
+        if (!isDocument) {
+          const canScroll = (scroller.scrollHeight - scroller.clientHeight) > 1;
+          if (!canScroll) {
+            scroller = docEl;
+            isDocument = true;
+          }
+        }
+
+        const scrollerRect = !isDocument && scroller.getBoundingClientRect
+          ? scroller.getBoundingClientRect()
+          : { top: 0, height: window.innerHeight || docEl.clientHeight || 0 };
+
         const targetRect = target.getBoundingClientRect();
-        const currentScrollTop = isDocument ? window.scrollY : (scroller.scrollTop || 0);
+
+        const currentScrollTop = isDocument
+          ? (window.scrollY ?? window.pageYOffset ?? docEl.scrollTop ?? 0)
+          : (scroller.scrollTop || 0);
+
         const topbar = document.getElementById('topbar');
         const cssTopbar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-height')) || 0;
         const topbarHeight = (topbar?.offsetHeight || cssTopbar || 0);
-        const offsetMargin = topbarHeight + 24;
-        const destination = Math.max(0, (targetRect.top - scrollerRect.top) + currentScrollTop - offsetMargin);
-        try {
-          if (isDocument) {
-            window.scrollTo({ top: destination, behavior: 'smooth' });
-          } else {
-            scroller.scrollTo({ top: destination, behavior: 'smooth' });
-          }
-        } catch (_) {
-          if (isDocument) {
-            window.scrollTo(0, destination);
-          } else {
-            scroller.scrollTop = destination;
-          }
-        }
+
+        const viewportHeight = isDocument
+          ? (window.innerHeight || docEl.clientHeight || 0)
+          : (scroller.clientHeight || scrollerRect.height || 0);
+        if (!viewportHeight) return;
+
+        const targetHeight = targetRect.height || target.offsetHeight || 0;
+        const visibleViewportHeight = isDocument ? Math.max(0, viewportHeight - topbarHeight) : viewportHeight;
+
+        const centerOffset = isDocument ? (topbarHeight + (visibleViewportHeight / 2)) : (viewportHeight / 2);
+        const targetCenterOffset = (targetRect.top - scrollerRect.top) + (targetHeight / 2);
+
+        let destination = currentScrollTop + targetCenterOffset - centerOffset;
+        if (!Number.isFinite(destination)) return;
+
+        const maxScroll = isDocument
+          ? Math.max(0, Math.max(docEl.scrollHeight || 0, body?.scrollHeight || 0) - viewportHeight)
+          : Math.max(0, (scroller.scrollHeight || 0) - viewportHeight);
+
+        destination = Math.min(Math.max(0, destination), maxScroll);
+
+        animateScrollTo(isDocument ? document.documentElement : scroller, destination, { isDocument, duration, easing });
         quill.focus();
       };
 
@@ -965,7 +1081,7 @@
           const pmid = card.dataset.pmid;
           if (!pmid) return;
           setActive(pmid, card);
-          scrollInlineIntoView(pmid);
+          scrollInlineIntoView(pmid, { cycle: true, duration: 640 });
         });
         card.addEventListener('keydown', event => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -973,9 +1089,27 @@
           const pmid = card.dataset.pmid;
           if (!pmid) return;
           setActive(pmid, card);
-          scrollInlineIntoView(pmid);
+          scrollInlineIntoView(pmid, { cycle: true, duration: 640 });
         });
       };
+
+      // Allow clicking inline PMID tokens to cycle through mentions with smooth ease-out
+      quill.root.addEventListener('click', event => {
+        const token = event.target && event.target.closest('.ql-pmid');
+        if (!token) return;
+
+        // Do not hijack true text selections
+        const sel = window.getSelection && window.getSelection();
+        if (sel && sel.rangeCount && !sel.getRangeAt(0).collapsed) return;
+
+        event.preventDefault();
+        const pmid = token.getAttribute('data-pmid');
+        if (!pmid) return;
+
+        const card = cardMap.get(pmid);
+        if (card) setActive(pmid, card);
+        scrollInlineIntoView(pmid, { cycle: true, duration: 640 });
+      });
 
       const buildCard = pmid => {
         const card = document.createElement('button');
@@ -1059,6 +1193,7 @@
             if (card.parentElement === listEl) listEl.removeChild(card);
           });
           cardMap.clear();
+          mentionCycleIndex.clear();
           return;
         }
 
@@ -1084,6 +1219,7 @@
           const card = cardMap.get(pmid);
           if (card && card.parentElement === listEl) listEl.removeChild(card);
           cardMap.delete(pmid);
+          mentionCycleIndex.delete(pmid);
         });
 
         if (activePmid && !cardMap.has(activePmid)) {
