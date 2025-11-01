@@ -177,6 +177,10 @@
   .dark .pmid-card-journal { color: #a5b4fc }
   .dark .pmid-card-loading { color: #cbd5f5 }
   .dark .pmid-card-error { color: #fca5a5 }
+  .pmid-card-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px }
+  .pmid-card-journal { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .pmid-card-type { flex: 0 0 auto; font-size: .62rem; color: #0f172a; opacity: .8; white-space: nowrap }
+  .dark .pmid-card-type { color: #cbd5e1 }
   .pmid-inline-highlight { color: #dc2626 !important; background: rgba(254,226,226,.95) !important }
   .dark .pmid-inline-highlight { color: #f87171 !important; background: rgba(127,29,29,.5) !important }
   #workspace-shell { --workspace-gap: 1.5rem; --editor-min-width: 320px; --pmid-sidebar-total: calc(var(--pmid-sidebar-width) + (var(--sidebar-gutter) * 2)); --pmid-sidebar-track: calc(var(--pmid-sidebar-total) + var(--workspace-gap)); transition: padding .32s ease; }
@@ -535,6 +539,80 @@
         return prefix + (node.textContent || '').trim();
       }).filter(Boolean);
       const abstractHtml = abstractSegments.join('<br><br>');
+      // Publication types
+      const typeNodes = article.querySelectorAll('PublicationTypeList > PublicationType');
+      const pubTypes = [...typeNodes].map(n => (n.textContent || '').trim()).filter(Boolean);
+
+      // Choose a primary type with simple priority, prefer a specific type over generic "Journal Article"
+      const TYPE_PRIORITY = [
+        'Randomized Controlled Trial',
+        'Clinical Trial, Phase IV',
+        'Clinical Trial, Phase III',
+        'Clinical Trial, Phase II',
+        'Clinical Trial, Phase I',
+        'Clinical Trial',
+        'Systematic Review',
+        'Meta-Analysis',
+        'Practice Guideline',
+        'Guideline',
+        'Comparative Study',
+        'Observational Study',
+        'Cohort Studies',
+        'Cross-Sectional Studies',
+        'Multicenter Study',
+        'Case Reports',
+        'Evaluation Study',
+        'Validation Study',
+        'Editorial',
+        'Letter',
+        'Comment',
+        'Journal Article'
+      ];
+
+      const pickPrimaryType = types => {
+        if (!types || !types.length) return '';
+        for (const t of TYPE_PRIORITY) {
+          if (types.includes(t)) return t;
+        }
+        // Fallback to the first type if none matched priority
+        return types[0] || '';
+      };
+
+      const ABBR = {
+        'Randomized Controlled Trial': 'RCT',
+        'Clinical Trial, Phase I': 'CT P1',
+        'Clinical Trial, Phase II': 'CT P2',
+        'Clinical Trial, Phase III': 'CT P3',
+        'Clinical Trial, Phase IV': 'CT P4',
+        'Clinical Trial': 'CT',
+        'Systematic Review': 'SR',
+        'Meta-Analysis': 'MA',
+        'Practice Guideline': 'Guideline',
+        'Guideline': 'Guideline',
+        'Comparative Study': 'Comp Study',
+        'Observational Study': 'Obs Study',
+        'Cohort Studies': 'Cohort',
+        'Cross-Sectional Studies': 'X-Sectional',
+        'Multicenter Study': 'Multicenter',
+        'Case Reports': 'Case Rep',
+        'Evaluation Study': 'Eval Study',
+        'Validation Study': 'Validation',
+        'Editorial': 'Editorial',
+        'Letter': 'Letter',
+        'Comment': 'Comment',
+        'Journal Article': 'Article'
+      };
+
+      const autoAbbrev = s => {
+        if (!s) return '';
+        const parts = s.split(/\s+/).filter(Boolean);
+        if (parts.length <= 2 && s.length <= 18) return s;
+        const initials = parts.map(w => w[0]).join('').toUpperCase();
+        return initials.length >= 2 ? initials : s;
+      };
+
+      const typeFull = pickPrimaryType(pubTypes);
+      const typeShort = ABBR[typeFull] || autoAbbrev(typeFull);
       const citeVolume = volume ? volume + (issue ? `(${issue})` : '') : '';
       const citationParts = [journalAbbrev || journalTitle, year, citeVolume, pages].filter(Boolean);
       return {
@@ -549,7 +627,10 @@
         citation: citationParts.join(' '),
         authorsFull,
         authorsDisplay,
-        abstractHtml
+        abstractHtml,
+        pubTypes,
+        typeFull,
+        typeShort
       };
     };
 
@@ -1154,7 +1235,10 @@
               <span class="pmid-card-year pmid-card-loading">•••</span>
             </div>
             <div class="pmid-card-title pmid-card-loading">Fetching citation…</div>
-            <div class="pmid-card-journal pmid-card-loading">Loading journal…</div>
+            <div class="pmid-card-row">
+              <div class="pmid-card-journal pmid-card-loading">Loading journal…</div>
+              <div class="pmid-card-type pmid-card-loading" aria-label="Article type">—</div>
+            </div>
           </div>
         `;
         setCardStack(card, 1);
@@ -1182,6 +1266,22 @@
           journalEl.textContent = metadata.journalAbbrev || metadata.journalTitle || 'Journal unavailable';
           journalEl.classList.remove('pmid-card-loading', 'pmid-card-error');
         }
+        const typeEl = card.querySelector('.pmid-card-type');
+        if (typeEl) {
+          const full = metadata.typeFull || '';
+          const short = metadata.typeShort || '';
+          // Try full first, then downgrade to short if the row overflows
+          typeEl.textContent = full || short || '';
+          typeEl.title = full || '';
+          typeEl.classList.remove('pmid-card-loading', 'pmid-card-error');
+          const row = card.querySelector('.pmid-card-row');
+          const needsAbbrev = () => row && (row.scrollWidth - 1) > row.clientWidth;
+          requestAnimationFrame(() => {
+            if (needsAbbrev()) {
+              typeEl.textContent = short || full || '';
+            }
+          });
+        }
       };
 
       const applyError = card => {
@@ -1204,6 +1304,12 @@
           journalEl.textContent = 'Try again later.';
           journalEl.classList.remove('pmid-card-loading');
           journalEl.classList.add('pmid-card-error');
+        }
+        const typeEl = card.querySelector('.pmid-card-type');
+        if (typeEl) {
+          typeEl.textContent = '—';
+          typeEl.classList.remove('pmid-card-loading');
+          typeEl.classList.add('pmid-card-error');
         }
       };
 
