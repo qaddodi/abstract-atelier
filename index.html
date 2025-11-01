@@ -197,8 +197,30 @@
   body:not(.pmid-sidebar-ready) #pmid-sidebar,
   body:not(.pmid-sidebar-ready) #workspace-shell > .flex-1 { transition: none !important }
   @media (max-width: 767px) {
-    #pmid-sidebar { display: none }
-    #toggle-sidebar { display: none }
+    /* Mobile slide-over citations */
+    body.pmid-sidebar-mobile-open { overflow: hidden }
+    #pmid-sidebar {
+      position: fixed;
+      top: calc((var(--topbar-height, 0px)) + 8px);
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      max-height: calc(100vh - (var(--topbar-height, 0px) + 8px));
+      margin: 0;
+      border-radius: 16px 16px 0 0;
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+      display: block;
+      z-index: 49; /* under topbar (z-50), above editor */
+    }
+    body.pmid-sidebar-mobile-open #pmid-sidebar {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    #toggle-sidebar { display: inline-flex }
     #editor-card { margin-left: auto; margin-right: auto }
     #workspace-shell > .flex-1 { flex: 1 1 auto; width: 100%; max-width: 100%; margin: 0 !important }
   }
@@ -612,8 +634,16 @@
         }
       };
       let collapsed = readStoredState();
+      const mq = window.matchMedia('(max-width: 767px)');
       const render = () => {
-        document.body.classList.toggle('pmid-sidebar-collapsed', collapsed);
+        const isMobile = mq.matches;
+        if (isMobile) {
+          document.body.classList.remove('pmid-sidebar-collapsed');
+          document.body.classList.toggle('pmid-sidebar-mobile-open', !collapsed);
+        } else {
+          document.body.classList.remove('pmid-sidebar-mobile-open');
+          document.body.classList.toggle('pmid-sidebar-collapsed', collapsed);
+        }
         sidebar.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
         btn.setAttribute('aria-label', collapsed ? 'Show citations panel' : 'Hide citations panel');
         btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
@@ -621,7 +651,7 @@
         if (icon) icon.classList.toggle('opacity-80', collapsed);
       };
       render();
-      if (window.matchMedia('(max-width: 767px)').matches) {
+      if (mq.matches) {
         collapsed = true;
         render();
       }
@@ -632,10 +662,8 @@
           localStorage.setItem(STORAGE_KEYS.sidebar, collapsed ? 'collapsed' : 'expanded');
         } catch (_) {}
       });
-      const mq = window.matchMedia('(max-width: 767px)');
-      const handleMedia = event => {
-        if (!event.matches) return;
-        collapsed = true;
+      const handleMedia = () => {
+        collapsed = true; // always start closed on mode switch
         render();
       };
       mq.addEventListener ? mq.addEventListener('change', handleMedia) : mq.addListener(handleMedia);
