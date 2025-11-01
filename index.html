@@ -107,7 +107,8 @@
   .dark .infinite-fade-top { display: none }
 
   /* Popup - translucent glass */
-  #popup { position: fixed; max-width: 640px; width: 92vw; background: rgba(255,255,255,.78); border: 1px solid rgba(0,0,0,.06); border-radius: 14px; backdrop-filter: saturate(120%) blur(10px); -webkit-backdrop-filter: saturate(120%) blur(10px); box-shadow: 0 20px 50px rgba(0,0,0,.25); z-index: 70 }
+  #popup { position: fixed; max-width: 640px; width: 92vw; background: rgba(255,255,255,.78); border: 1px solid rgba(0,0,0,.06); border-radius: 14px; backdrop-filter: saturate(120%) blur(10px); -webkit-backdrop-filter: saturate(120%) blur(10px); box-shadow: 0 20px 50px rgba(0,0,0,.25); z-index: 70; display: flex; flex-direction: column; overflow: hidden; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px) scale(.995); transition: opacity .12s ease, transform .12s ease, visibility 0s linear .12s; }
+  #popup.popup-open { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0) scale(1); transition: opacity .12s ease, transform .12s ease, visibility 0s; }
   .dark #popup { background: rgba(2,6,23,.78); border-color: rgba(255,255,255,.12); color: #e5e7eb; box-shadow: 0 20px 50px rgba(0,0,0,.5) }
   #popup .abstract-box { border: 1px solid var(--toolbar-border); background: rgba(255,255,255,.55); }
   .dark #popup .abstract-box { border-color: var(--toolbar-border); background: rgba(15,23,42,.45); }
@@ -334,7 +335,7 @@
 </div>
 
 <!-- Popup -->
-<div id="popup" class="hidden p-4 shadow-2xl"></div>
+<div id="popup" class="p-4 shadow-2xl"></div>
 
 <!-- Quill JS -->
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
@@ -1205,11 +1206,17 @@
       // Allow clicking inline PMID tokens to cycle through mentions with smooth ease-out
       quill.root.addEventListener('click', event => {
         const token = event.target && event.target.closest('.ql-pmid');
-        if (!token) return;
+        const selection = window.getSelection && window.getSelection();
+        const hasExpandedSelection = selection && selection.rangeCount && !selection.getRangeAt(0).collapsed;
+        if (!token) {
+          if (!hasExpandedSelection && activePmid) {
+            clearActive();
+          }
+          return;
+        }
 
         // Do not hijack true text selections
-        const sel = window.getSelection && window.getSelection();
-        if (sel && sel.rangeCount && !sel.getRangeAt(0).collapsed) return;
+        if (hasExpandedSelection) return;
 
         event.preventDefault();
         const pmid = token.getAttribute('data-pmid');
@@ -1405,84 +1412,223 @@
       if (!popup) return;
       let hideId = null;
       let anchor = null;
+      const clearHideTimer = () => {
+        if (hideId) {
+          clearTimeout(hideId);
+          hideId = null;
+        }
+      };
+      const scheduleHide = (delay = 200) => {
+        clearHideTimer();
+        hideId = setTimeout(() => {
+          hideId = null;
+          hidePopup();
+        }, delay);
+      };
+      const inflateRect = (rect, pad = 0) => ({
+        top: rect.top - pad,
+        right: rect.right + pad,
+        bottom: rect.bottom + pad,
+        left: rect.left - pad
+      });
+      const pointInRect = (x, y, rect) => (
+        x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
+      );
+      const adjustAbstractHeight = () => {
+        const abstractEl = popup.querySelector('.abstract-box');
+        const headerEl = popup.querySelector('[data-popup-header]');
+        if (!abstractEl) return;
+        requestAnimationFrame(() => {
+          const computedMax = Number(popup.dataset.maxHeight) || popup.getBoundingClientRect().height || 0;
+          if (!computedMax) return;
+          const styles = getComputedStyle(popup);
+          const paddingTop = parseFloat(styles.paddingTop || '0');
+          const paddingBottom = parseFloat(styles.paddingBottom || '0');
+          const headerHeight = headerEl ? headerEl.getBoundingClientRect().height : 0;
+          const available = computedMax - headerHeight - paddingTop - paddingBottom - 8;
+          if (available > 60) {
+            abstractEl.style.maxHeight = `${Math.floor(available)}px`;
+          } else {
+            abstractEl.style.maxHeight = '';
+          }
+        });
+      };
       const placePopup = rect => {
+        if (!rect) return;
         const vw = innerWidth;
         const vh = innerHeight;
         const pad = 16;
-        const topbarBottom = topbarEl ? topbarEl.getBoundingClientRect().bottom : 0;
+        const topbarBottom = topbarEl ? Math.max(0, topbarEl.getBoundingClientRect().bottom) : 0;
         const width = Math.min(640, vw * 0.92);
-        const height = Math.min(480, popup.offsetHeight || 300);
         let left = rect.left + rect.width / 2 - width / 2;
         left = Math.max(pad, Math.min(left, vw - width - pad));
-        let top = rect.bottom + pad;
+        const topSafety = topbarBottom + pad;
         const bottomLimit = vh - pad;
-        if (top + height > bottomLimit) {
-          const aboveTop = rect.top - height - pad;
-          top = aboveTop >= topbarBottom + pad ? aboveTop : bottomLimit - height;
+        const maxHeightLimit = Math.min(640, Math.max(0, bottomLimit - topSafety));
+        const spaceBelow = Math.max(0, bottomLimit - (rect.bottom + pad));
+        const spaceAbove = Math.max(0, (rect.top - pad) - topSafety);
+        const order = spaceBelow >= spaceAbove ? ['below', 'above'] : ['above', 'below'];
+        const attempt = direction => {
+          if (direction === 'below') {
+            const topCandidate = rect.bottom + pad;
+            const available = bottomLimit - topCandidate;
+            if (available <= 0) return null;
+            const limit = maxHeightLimit > 0 ? maxHeightLimit : available;
+            const maxHeight = Math.min(limit, available);
+            if (maxHeight <= 0) return null;
+            return { orientation: 'below', top: topCandidate, maxHeight };
+          }
+          const bottomEdge = rect.top - pad;
+          const available = bottomEdge - topSafety;
+          if (available <= 0) return null;
+          const limit = maxHeightLimit > 0 ? maxHeightLimit : available;
+          let maxHeight = Math.min(limit, available);
+          if (maxHeight <= 0) return null;
+          let topCandidate = bottomEdge - maxHeight;
+          if (topCandidate < topSafety) {
+            const overshoot = topSafety - topCandidate;
+            topCandidate = topSafety;
+            if (overshoot >= maxHeight) return null;
+            maxHeight -= overshoot;
+          }
+          let bottomCandidate = rect.top - pad;
+          if (bottomCandidate > bottomLimit) {
+            bottomCandidate = bottomLimit;
+          }
+          maxHeight = Math.min(maxHeight, bottomCandidate - topCandidate);
+          if (maxHeight <= 0) return null;
+          return { orientation: 'above', top: bottomCandidate - maxHeight, maxHeight, bottom: bottomCandidate };
+        };
+        let placement = null;
+        for (const direction of order) {
+          placement = attempt(direction);
+          if (placement) break;
         }
-        top = Math.max(top, topbarBottom + pad);
-        if (top + height > bottomLimit) top = Math.max(topbarBottom + pad, bottomLimit - height);
+        if (!placement) {
+          if (order[0] === 'above') {
+            let bottomCandidate = rect.top - pad;
+            if (!Number.isFinite(bottomCandidate)) bottomCandidate = bottomLimit;
+            bottomCandidate = Math.min(bottomCandidate, bottomLimit);
+            const available = Math.max(0, bottomCandidate - topSafety);
+            let maxHeight = maxHeightLimit > 0 ? Math.min(maxHeightLimit, available) : available;
+            if (maxHeight <= 0) maxHeight = Math.max(0, bottomLimit - topSafety);
+            let topCandidate = Math.max(topSafety, bottomCandidate - maxHeight);
+            if (topCandidate > bottomCandidate) topCandidate = bottomCandidate;
+            const height = Math.max(0, bottomCandidate - topCandidate);
+            placement = { orientation: 'above', top: topCandidate, maxHeight: height, bottom: bottomCandidate };
+          } else {
+            const fallbackTop = Math.max(topSafety, Math.min(rect.bottom + pad, bottomLimit));
+            const fallbackHeight = Math.max(0, bottomLimit - fallbackTop);
+            placement = { orientation: 'below', top: fallbackTop, maxHeight: fallbackHeight };
+          }
+        }
+        const maxHeightValue = Math.max(0, placement.maxHeight);
+        if (maxHeightValue <= 0) return hidePopup();
         popup.style.left = `${left}px`;
-        popup.style.top = `${top}px`;
+        if (placement.orientation === 'above') {
+          const bottomTarget = placement.bottom != null ? placement.bottom : rect.top - pad;
+          let bottomOffset = vh - bottomTarget;
+          if (!Number.isFinite(bottomOffset)) bottomOffset = pad;
+          bottomOffset = Math.max(pad, Math.min(bottomOffset, vh - topSafety));
+          popup.style.top = 'auto';
+          popup.style.bottom = `${Math.round(bottomOffset)}px`;
+        } else {
+          popup.style.top = `${Math.round(placement.top)}px`;
+          popup.style.bottom = 'auto';
+        }
         popup.style.width = `${width}px`;
-        popup.style.maxHeight = '70vh';
+        popup.style.maxHeight = `${Math.round(maxHeightValue)}px`;
+        popup.dataset.maxHeight = String(Math.round(maxHeightValue));
+        popup.dataset.orientation = placement.orientation;
+        adjustAbstractHeight();
       };
       const showPopup = async element => {
         const pmid = element.getAttribute('data-pmid');
         if (!pmid) return;
         anchor = element;
-        popup.classList.remove('hidden');
-        popup.innerHTML = '<div class="flex items-center gap-2 text-gray-600 dark:text-gray-300"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading abstract</span></div>';
+        clearHideTimer();
+        popup.classList.add('popup-open');
+        popup.innerHTML = '<div class="flex-1 flex items-center justify-center gap-2 text-gray-600 dark:text-gray-300"><svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Loading abstract</span></div>';
         placePopup(element.getBoundingClientRect());
         try {
           const metadata = await fetchPmidMetadata(pmid);
-          const citationMarkup = metadata.citation
-            ? `<div class="text-xs text-gray-500 dark:text-gray-400 mb-2 text-center">${metadata.citation}</div>`
-            : '';
+          const journalLabelRaw = metadata.journalAbbrev || metadata.journalTitle || '';
+          const journalLabel = journalLabelRaw ? journalLabelRaw.toUpperCase() : '&nbsp;';
+          const yearLabel = metadata.year || '&nbsp;';
           const abstractMarkup = metadata.abstractHtml
-            ? `<div class="abstract-box text-sm leading-relaxed nice-scroll max-h-60 overflow-y-auto rounded-lg px-3 py-3">${metadata.abstractHtml}</div>`
+            ? `<div class="abstract-box flex-1 text-sm leading-relaxed nice-scroll overflow-y-auto rounded-lg px-3 py-3">${metadata.abstractHtml}</div>`
             : '';
-          const authorsText = metadata.authorsDisplay || 'Authors not found';
-          const authorsSpacingClass = metadata.abstractHtml ? 'mb-3' : 'mb-0';
           popup.innerHTML = `
-            <div class="text-lg font-bold mb-1 leading-snug text-center">${metadata.title}</div>
-            ${citationMarkup}
-            <div class="text-sm text-gray-700 dark:text-gray-300 ${authorsSpacingClass} text-center">${authorsText}</div>
-            ${abstractMarkup}
-            <div class="mt-3 flex items-center justify-center text-gray-700 dark:text-gray-300">
-              <a class="ql-pmid inline-flex items-center text-xs leading-none px-3 py-1" href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer">PMID: ${pmid}</a>
+            <div class="flex flex-1 flex-col gap-4 h-full">
+              <div data-popup-header class="space-y-3">
+                <div class="grid grid-cols-[1fr_auto_1fr] items-baseline gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-gray-500 dark:text-gray-400">
+                  <span class="truncate text-left">${journalLabel}</span>
+                  <a class="justify-self-center font-mono tracking-[0.12em] uppercase text-gray-500 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors" href="https://pubmed.ncbi.nlm.nih.gov/${pmid}/" target="_blank" rel="noopener noreferrer">PMID ${pmid}</a>
+                  <span class="text-right">${yearLabel}</span>
+                </div>
+                <div class="text-lg font-semibold leading-snug text-center text-gray-800 dark:text-gray-100 px-2">${metadata.title}</div>
+              </div>
+              ${abstractMarkup}
             </div>
           `;
           placePopup(element.getBoundingClientRect());
         } catch (error) {
-          popup.innerHTML = '<div class="text-red-500">Error loading abstract</div>';
+          popup.innerHTML = '<div class="flex-1 flex items-center justify-center text-red-500">Error loading abstract</div>';
           placePopup(element.getBoundingClientRect());
         }
       };
       const hidePopup = () => {
-        popup.classList.add('hidden');
+        clearHideTimer();
+        popup.classList.remove('popup-open');
+        popup.dataset.maxHeight = '0';
         anchor = null;
       };
       quill.root.addEventListener('mouseover', event => {
         const target = event.target.closest('.ql-pmid');
         if (!target) return;
-        clearTimeout(hideId);
+        clearHideTimer();
         showPopup(target);
       });
       quill.root.addEventListener('mouseout', event => {
         const target = event.target.closest('.ql-pmid');
         if (!target) return;
-        hideId = setTimeout(hidePopup, 220);
+        const related = event.relatedTarget;
+        if (related) {
+          if (popup.contains(related)) return;
+          const relatedToken = related.closest && related.closest('.ql-pmid');
+          if (relatedToken) return;
+        }
+        scheduleHide(220);
       });
-      popup.addEventListener('mouseenter', () => clearTimeout(hideId));
-      popup.addEventListener('mouseleave', () => {
-        hideId = setTimeout(hidePopup, 220);
+      popup.addEventListener('mouseenter', clearHideTimer);
+      popup.addEventListener('mouseleave', () => scheduleHide(200));
+      document.addEventListener('pointerdown', event => {
+        if (!popup.classList.contains('popup-open')) return;
+        const target = event.target;
+        if (!target) return;
+        if (popup.contains(target)) return;
+        if (anchor && (target === anchor || (target.closest && target.closest('.ql-pmid') === anchor))) return;
+        hidePopup();
       });
+      document.addEventListener('pointermove', event => {
+        if (!popup.classList.contains('popup-open') || !anchor) return;
+        const { clientX: x, clientY: y } = event;
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+        const popupRect = popup.getBoundingClientRect();
+        const anchorRect = anchor.getBoundingClientRect();
+        const nearPopup = pointInRect(x, y, inflateRect(popupRect, 36));
+        const nearAnchor = pointInRect(x, y, inflateRect(anchorRect, 56));
+        if (nearPopup || nearAnchor) {
+          clearHideTimer();
+        } else {
+          scheduleHide(160);
+        }
+      }, { passive: true });
       window.addEventListener('scroll', () => {
-        if (!popup.classList.contains('hidden') && anchor) placePopup(anchor.getBoundingClientRect());
+        if (popup.classList.contains('popup-open') && anchor) placePopup(anchor.getBoundingClientRect());
       }, { passive: true });
       window.addEventListener('resize', () => {
-        if (!popup.classList.contains('hidden') && anchor) placePopup(anchor.getBoundingClientRect());
+        if (popup.classList.contains('popup-open') && anchor) placePopup(anchor.getBoundingClientRect());
       });
     };
 
