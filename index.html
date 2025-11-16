@@ -256,9 +256,12 @@
 <!-- Top bar: Title + Theme toggle + Quill toolbar (centered) -->
 <div id="topbar" class="fixed top-0 inset-x-0 z-50 border-b">
   <div class="max-w-7xl mx-auto px-4">
-    <div class="py-3 flex flex-col items-center justify-center gap-1.5">
-      <h1 class="header-title text-xl font-bold text-stone-700 dark:text-stone-100">Abstract Atelier</h1>
-      <p class="italic text-xs text-stone-500 dark:text-stone-300">by Mohammad Almeqdadi, MD</p>
+    <div class="py-3 flex items-center justify-center">
+      <div id="title-row" class="relative inline-flex items-baseline justify-center gap-2 text-center">
+        <span id="title-author-ghost" aria-hidden="true" class="invisible pointer-events-none select-none whitespace-nowrap text-sm font-normal italic text-stone-500 dark:text-stone-300">by Mohammad Almeqdadi, MD</span>
+        <h1 class="header-title text-xl font-bold text-stone-700 dark:text-stone-100 whitespace-nowrap">Abstract Atelier</h1>
+        <span id="title-author" class="text-sm font-normal italic text-stone-500 dark:text-stone-300 whitespace-nowrap" data-author-full="by Mohammad Almeqdadi, MD" data-author-short="by M Almeqdadi, MD" data-author-tiny="by M Almeqdadi">by Mohammad Almeqdadi, MD</span>
+      </div>
     </div>
   </div>
   <!-- Important: Use a dedicated toolbar container with a stable id. Do NOT pre-apply .ql-toolbar -->
@@ -741,6 +744,34 @@
         render();
         localStorage.setItem(STORAGE_KEYS.theme, isDark ? 'dark' : 'light');
       });
+    };
+
+    const initTitleSizing = () => {
+      const row = $('#title-row');
+      const author = $('#title-author');
+      const ghost = $('#title-author-ghost');
+      if (!row || !author || !ghost) return;
+      const labels = [
+        author.dataset.authorFull || author.textContent,
+        author.dataset.authorShort,
+        author.dataset.authorTiny
+      ].filter(Boolean);
+      if (!labels.length) return;
+      const applyLabel = label => {
+        author.textContent = label;
+        ghost.textContent = label;
+      };
+      const fit = () => {
+        const parentWidth = row.parentElement?.clientWidth || row.clientWidth || window.innerWidth;
+        for (const label of labels) {
+          applyLabel(label);
+          if (row.scrollWidth <= parentWidth) return;
+        }
+        applyLabel(labels[labels.length - 1]);
+      };
+      window.addEventListener('resize', fit, { passive: true });
+      window.addEventListener('load', fit, { once: true });
+      fit();
     };
 
     const initViewToggle = quill => {
@@ -1721,6 +1752,7 @@
     // Main Init
     const init = () => {
       initThemeToggle();
+      initTitleSizing();
       const { quill, toolbarEl } = initQuill();
       initViewToggle(quill);
       const sidebarEl = document.getElementById('pmid-sidebar');
