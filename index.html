@@ -1530,15 +1530,6 @@
           hidePopup();
         }, delay);
       };
-      const inflateRect = (rect, pad = 0) => ({
-        top: rect.top - pad,
-        right: rect.right + pad,
-        bottom: rect.bottom + pad,
-        left: rect.left - pad
-      });
-      const pointInRect = (x, y, rect) => (
-        x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom
-      );
       const adjustAbstractHeight = () => {
         const abstractEl = popup.querySelector('.abstract-box');
         const headerEl = popup.querySelector('[data-popup-header]');
@@ -1715,20 +1706,6 @@
         if (anchor && (target === anchor || (target.closest && target.closest('.ql-pmid') === anchor))) return;
         hidePopup();
       });
-      document.addEventListener('pointermove', event => {
-        if (!popup.classList.contains('popup-open') || !anchor) return;
-        const { clientX: x, clientY: y } = event;
-        if (!Number.isFinite(x) || !Number.isFinite(y)) return;
-        const popupRect = popup.getBoundingClientRect();
-        const anchorRect = anchor.getBoundingClientRect();
-        const nearPopup = pointInRect(x, y, inflateRect(popupRect, 36));
-        const nearAnchor = pointInRect(x, y, inflateRect(anchorRect, 56));
-        if (nearPopup || nearAnchor) {
-          clearHideTimer();
-        } else {
-          scheduleHide(160);
-        }
-      }, { passive: true });
       window.addEventListener('scroll', () => {
         if (popup.classList.contains('popup-open') && anchor) placePopup(anchor.getBoundingClientRect());
       }, { passive: true });
