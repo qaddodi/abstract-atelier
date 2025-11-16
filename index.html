@@ -15,7 +15,7 @@
 <!-- Quill CSS -->
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
 <style>
-  :root { --primary: #007aff; --toolbar-bg: rgba(255,255,255,.65); --toolbar-border: rgba(0,0,0,.06); --guide-line: rgba(15,23,42,.12); --toolbar-icon: #111827; --sidebar-gutter: clamp(0.75rem, 2.4vw, 1.35rem); --pmid-sidebar-width: 300px; --editor-track-max: 720px }
+  :root { --primary: #007aff; --toolbar-bg: rgba(255,255,255,.65); --toolbar-border: rgba(0,0,0,.06); --guide-line: rgba(15,23,42,.12); --toolbar-icon: #111827; --sidebar-gutter: clamp(0.75rem, 2.4vw, 1.35rem); --pmid-sidebar-width: 300px; --editor-track-max: 1200px }
   .dark:root { --toolbar-bg: rgba(3,7,18,.65); --toolbar-border: rgba(255,255,255,.12); --guide-line: rgba(148,163,184,.22); --toolbar-icon: #f5f5f6 }
   body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #fdfcf7 }
   .dark body { background: #0b1120 }
@@ -28,7 +28,7 @@
 
   /* Quill base polishing */
   .ql-container { border: 0 !important; background: transparent }
-  .ql-editor { font-size: 16px; line-height: 1.5; background: transparent; color: #111827; caret-color: #2563eb !important }
+  .ql-editor { font-size: 20px; line-height: 1.5; background: transparent; color: #111827; caret-color: #2563eb !important }
   .ql-editor p { margin-bottom: .5em }
   .ql-editor p:last-child { margin-bottom: 0 }
   .ql-container.ql-snow:focus-within,
@@ -100,7 +100,7 @@
   .dark .ql-pmid { background: #1e3a8a; color: #93c5fd }
 
   /* Editor host and infinite look */
-  #editor-card { position: relative; width: 100%; max-width: var(--editor-track-max); margin-left: 0; margin-right: auto; border: 0 !important; box-shadow: none !important; background: transparent; overflow: clip }
+  #editor-card { position: relative; width: 100%; max-width: var(--editor-track-max); margin-left: auto; margin-right: auto; border: 0 !important; box-shadow: none !important; background: transparent; overflow: clip }
   #editor-card::before,
   #editor-card::after {
     content: '';
@@ -203,14 +203,21 @@
   .dark .pmid-card-type { color: #cbd5e1 }
   .pmid-inline-highlight { color: #dc2626 !important; background: rgba(254,226,226,.95) !important }
   .dark .pmid-inline-highlight { color: #f87171 !important; background: rgba(127,29,29,.5) !important }
-  #workspace-shell { --workspace-gap: 1.5rem; --editor-min-width: 320px; --pmid-sidebar-total: calc(var(--pmid-sidebar-width) + (var(--sidebar-gutter) * 2)); --pmid-sidebar-track: calc(var(--pmid-sidebar-total) + var(--workspace-gap)); transition: padding .32s ease; }
+  #workspace-shell { --workspace-gap: 1.5rem; --editor-min-width: 320px; --pmid-sidebar-total: calc(var(--pmid-sidebar-width) + (var(--sidebar-gutter) * 2)); --pmid-sidebar-track: calc(var(--pmid-sidebar-total) + var(--workspace-gap)); --editor-track-size: clamp(var(--editor-min-width), calc(100% - var(--pmid-sidebar-track)), var(--editor-track-max)); transition: padding .32s ease; }
+  @media (min-width: 768px) {
+    #workspace-shell { justify-content: center; }
+  }
   #workspace-shell > .flex-1 {
-    flex: 0 0 max(var(--editor-min-width), calc(100% - var(--pmid-sidebar-track)));
-    width: max(var(--editor-min-width), calc(100% - var(--pmid-sidebar-track)));
-    max-width: max(var(--editor-min-width), calc(100% - var(--pmid-sidebar-track)));
+    flex: 0 0 var(--editor-track-size);
+    width: var(--editor-track-size);
+    max-width: var(--editor-track-size);
     margin-left: 0;
     margin-right: 0;
-    transition: margin .32s ease, max-width .32s ease;
+    transition: margin .32s ease, max-width .32s ease, width .32s ease;
+  }
+  body.pmid-sidebar-collapsed #workspace-shell {
+    --pmid-sidebar-track: var(--workspace-gap);
+    --editor-track-size: clamp(var(--editor-min-width), calc(100% - var(--workspace-gap)), var(--editor-track-max));
   }
   body.pmid-sidebar-collapsed #pmid-sidebar { opacity: 0; transform: translateX(-32px); margin-left: 0; margin-right: calc(-1 * var(--pmid-sidebar-track)); pointer-events: none }
   body.pmid-sidebar-collapsed #editor-card { margin-left: auto; margin-right: auto }
@@ -317,7 +324,7 @@
 
 <!-- Main -->
 <main class="max-w-6xl mx-auto px-4 md:px-8 pt-28 pb-12 overflow-visible">
-  <div id="workspace-shell" class="flex flex-col md:flex-row md:items-start gap-6">
+  <div id="workspace-shell" class="flex flex-col md:flex-row md:items-start md:justify-center gap-6">
     <aside id="pmid-sidebar" class="nice-scroll" aria-label="PMID citations panel">
       <div class="pmid-sidebar-header">
         <span class="pmid-sidebar-title">
@@ -328,7 +335,7 @@
       <div id="pmid-card-list"></div>
       <div id="pmid-sidebar-empty" class="pmid-empty-state">Add a PMID citation in your text to see it here.</div>
     </aside>
-    <div class="flex-1 min-w-0">
+    <div class="flex-1 min-w-0 flex justify-center">
       <div id="editor-card">
         <div id="editor-shell">
           <div id="editor"></div>
