@@ -60,6 +60,7 @@
   #statusbar .stat-total { font-weight: 600 }
 
   /* Quill toolbar visuals */
+  #toolbar { position: relative; }
   /* Quill will add .ql-toolbar automatically to #toolbar after initialization */
   .ql-toolbar.ql-snow { box-shadow: none; border-radius: 9999px; }
   .ql-toolbar { border: 0 !important; background: transparent !important; display: flex; align-items: center; justify-content: center; gap: .5rem; overflow-x: auto; overflow-y: hidden; white-space: nowrap; flex-wrap: nowrap; scrollbar-width: thin; -webkit-overflow-scrolling: touch }
@@ -84,6 +85,12 @@
   .dark .ql-custom-btn { background: transparent }
   .dark .ql-custom-btn:hover, .dark .ql-custom-btn:focus-visible { color: rgba(191,219,254,1) }
   .dark .ql-custom-btn.ql-active { color: rgba(147,197,253,1) }
+  .toolbar-formatting { position: relative; display: inline-flex; align-items: center; gap: .5rem; flex-wrap: nowrap }
+  .toolbar-readonly-banner { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-weight: 800; letter-spacing: .18em; font-size: .7rem; text-transform: uppercase; color: #0f172a; opacity: 0; transform: translateY(4px); transition: opacity .25s ease, transform .25s ease; text-shadow: 0 0 10px rgba(255,255,255,.9), 0 0 18px rgba(255,255,255,.7), 0 2px 6px rgba(0,0,0,.2) }
+  .dark .toolbar-readonly-banner { color: #f8fafc; text-shadow: 0 0 12px rgba(255,255,255,.8), 0 0 20px rgba(255,255,255,.7), 0 2px 8px rgba(0,0,0,.5) }
+  .view-only-mode #toolbar .toolbar-formatting .ql-formats button,
+  .view-only-mode #toolbar .toolbar-formatting .ql-formats .ql-picker { opacity: .32; cursor: not-allowed; pointer-events: none }
+  .view-only-mode #toolbar .toolbar-formatting .toolbar-readonly-banner { opacity: 1; transform: translateY(0) }
   @media (max-width: 640px) {
     .ql-toolbar { justify-content: flex-start }
   }
@@ -281,23 +288,26 @@
         </svg>
       </button>
     </span>
-    <span class="ql-formats">
-      <button class="ql-bold"></button>
-      <button class="ql-italic"></button>
-      <button class="ql-underline"></button>
-    </span>
-    <span class="ql-formats">
-      <button class="ql-align" value=""></button>
-      <button class="ql-align" value="center"></button>
-      <button class="ql-align" value="justify"></button>
-    </span>
-    <span class="ql-formats">
-      <button class="ql-list" value="ordered"></button>
-      <button class="ql-list" value="bullet"></button>
-    </span>
-    <span class="ql-formats">
-      <button class="ql-clean"></button>
-    </span>
+    <div class="toolbar-formatting">
+      <span class="ql-formats">
+        <button class="ql-bold"></button>
+        <button class="ql-italic"></button>
+        <button class="ql-underline"></button>
+      </span>
+      <span class="ql-formats">
+        <button class="ql-align" value=""></button>
+        <button class="ql-align" value="center"></button>
+        <button class="ql-align" value="justify"></button>
+      </span>
+      <span class="ql-formats">
+        <button class="ql-list" value="ordered"></button>
+        <button class="ql-list" value="bullet"></button>
+      </span>
+      <span class="ql-formats">
+        <button class="ql-clean"></button>
+      </span>
+      <span class="toolbar-readonly-banner" aria-hidden="true">READ ONLY</span>
+    </div>
   </div>
 </div>
 
