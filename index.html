@@ -169,6 +169,11 @@
   .dark .pmid-card:focus-visible .pmid-card-layer.layer-1 { background: rgba(127,29,29,.5) }
   .dark .pmid-card-count { background: rgba(96,165,250,.24); color: #bfdbfe }
   .pmid-card-meta { display: flex; align-items: center; gap: 6px; font-size: .58rem; text-transform: uppercase; letter-spacing: .18em; color: #0f172a; opacity: .7; flex-wrap: wrap }
+  .pmid-card-pmid-link { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; font-weight: 700; cursor: pointer }
+  .pmid-card:hover .pmid-card-pmid-link,
+  .pmid-card.is-hovered .pmid-card-pmid-link,
+  .pmid-card:focus-visible .pmid-card-pmid-link { color: #dc2626 }
+  .dark .pmid-card-pmid-link { color: #93c5fd }
   .pmid-card-title { font-size: .74rem; font-weight: 600; line-height: 1.3; color: #0f172a }
   .pmid-card-journal { font-size: .62rem; color: #475569; letter-spacing: .1em; text-transform: uppercase }
   .pmid-card-loading { font-size: .62rem; color: #64748b }
@@ -663,6 +668,12 @@
       anchor.target = '_blank';
       anchor.rel = 'noopener noreferrer';
       node.replaceWith(anchor);
+    };
+
+    const openPubmed = pmid => {
+      if (!pmid) return;
+      const url = `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
+      window.open(url, '_blank', 'noopener,noreferrer');
     };
 
     // Quill Extensions
@@ -1221,11 +1232,21 @@
       };
 
       const bindInteractions = card => {
+        const pmidLink = card.querySelector('.pmid-card-pmid-link');
+        if (pmidLink) {
+          pmidLink.addEventListener('click', event => {
+            event.stopPropagation();
+            event.preventDefault();
+            openPubmed(card.dataset.pmid);
+          });
+        }
         card.addEventListener('mouseenter', () => setActive(card.dataset.pmid, card));
         card.addEventListener('mouseleave', clearActive);
         card.addEventListener('focus', () => setActive(card.dataset.pmid, card));
         card.addEventListener('blur', clearActive);
         card.addEventListener('click', event => {
+          const clickedPmidLink = event.target instanceof Element && event.target.closest('.pmid-card-pmid-link');
+          if (clickedPmidLink) return;
           event.preventDefault();
           const pmid = card.dataset.pmid;
           if (!pmid) return;
@@ -1277,7 +1298,7 @@
           <span class="pmid-card-count" aria-hidden="true"></span>
           <div class="pmid-card-body">
             <div class="pmid-card-meta">
-              <span>PMID ${pmid}</span>
+              <span class="pmid-card-pmid-link" title="Open on PubMed">PMID ${pmid}</span>
               <span class="pmid-card-year pmid-card-loading">•••</span>
             </div>
             <div class="pmid-card-title pmid-card-loading">Fetching citation…</div>
