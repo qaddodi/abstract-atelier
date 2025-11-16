@@ -15,7 +15,7 @@
 <!-- Quill CSS -->
 <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet">
 <style>
-  :root { --primary: #007aff; --toolbar-bg: rgba(255,255,255,.65); --toolbar-border: rgba(0,0,0,.06); --guide-line: rgba(15,23,42,.12); --toolbar-icon: #111827; --sidebar-gutter: clamp(0.75rem, 2.4vw, 1.35rem); --pmid-sidebar-width: 300px; --editor-track-max: 1200px }
+  :root { --primary: #007aff; --toolbar-bg: rgba(255,255,255,.65); --toolbar-border: rgba(0,0,0,.06); --guide-line: rgba(15,23,42,.12); --toolbar-icon: #111827; --sidebar-gutter: clamp(0.75rem, 2.4vw, 1.35rem); --page-margin: 7.5vw; --pmid-sidebar-width: 350px; --workspace-gap: clamp(1rem, 2vw, 1.5rem); --editor-track-max: none }
   .dark:root { --toolbar-bg: rgba(3,7,18,.65); --toolbar-border: rgba(255,255,255,.12); --guide-line: rgba(148,163,184,.22); --toolbar-icon: #f5f5f6 }
   body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: #fdfcf7 }
   .dark body { background: #0b1120 }
@@ -134,7 +134,7 @@
   .dark .nice-scroll { scrollbar-color: rgba(209,213,219,.55) transparent }
   .dark .nice-scroll::-webkit-scrollbar-thumb { background-color: rgba(203,213,225,.5) }
   .dark .nice-scroll:hover::-webkit-scrollbar-thumb { background-color: rgba(226,232,240,.75) }
-  #pmid-sidebar { display: flex; flex-direction: column; position: sticky; top: calc((var(--topbar-height, 0px)) + 24px); max-height: calc(100vh - (var(--topbar-height, 0px) + 72px)); min-height: 220px; width: var(--pmid-sidebar-width); margin-left: var(--sidebar-gutter); margin-right: var(--sidebar-gutter); padding: 22px; border-radius: 20px; border: 1px solid rgba(15,23,42,.08); background: rgba(255,255,255,.72); backdrop-filter: saturate(130%) blur(18px); -webkit-backdrop-filter: saturate(130%) blur(18px); box-shadow: 0 18px 46px rgba(15,23,42,.14); overflow-y: auto; overflow-x: hidden; transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, margin-left .32s ease, margin-right .32s ease, transform .32s ease, opacity .22s ease }
+  #pmid-sidebar { display: flex; flex-direction: column; position: sticky; top: calc((var(--topbar-height, 0px)) + 24px); max-height: calc(100vh - (var(--topbar-height, 0px) + 72px)); min-height: 220px; width: var(--pmid-sidebar-width); max-width: var(--pmid-sidebar-width); flex: 0 0 var(--pmid-sidebar-width); margin: 0; padding: 22px; border-radius: 20px; border: 1px solid rgba(15,23,42,.1); background: rgba(246,248,252,.9); backdrop-filter: saturate(130%) blur(18px); -webkit-backdrop-filter: saturate(130%) blur(18px); box-shadow: 0 18px 46px rgba(15,23,42,.14); overflow-y: auto; overflow-x: hidden; transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, transform .32s ease, opacity .22s ease, width .32s ease, max-width .32s ease, flex-basis .32s ease, margin .32s ease, padding .32s ease }
   .dark #pmid-sidebar { border-color: rgba(148,163,184,.22); background: rgba(15,23,42,.68); box-shadow: 0 24px 60px rgba(0,0,0,.55) }
   #pmid-sidebar { scrollbar-gutter: stable both-edges }
   #pmid-sidebar::-webkit-scrollbar { width: 6px }
@@ -203,29 +203,14 @@
   .dark .pmid-card-type { color: #cbd5e1 }
   .pmid-inline-highlight { color: #dc2626 !important; background: rgba(254,226,226,.95) !important }
   .dark .pmid-inline-highlight { color: #f87171 !important; background: rgba(127,29,29,.5) !important }
-  #workspace-shell { --workspace-gap: 1.5rem; --editor-min-width: 320px; --pmid-sidebar-total: calc(var(--pmid-sidebar-width) + (var(--sidebar-gutter) * 2)); --pmid-sidebar-track: calc(var(--pmid-sidebar-total) + var(--workspace-gap)); --editor-track-size: clamp(var(--editor-min-width), calc(100% - var(--pmid-sidebar-track)), var(--editor-track-max)); transition: padding .32s ease; }
+  #workspace-shell { box-sizing: border-box; width: 100%; max-width: 100%; gap: var(--workspace-gap); padding-left: var(--page-margin); padding-right: var(--page-margin); transition: padding .32s ease; }
   @media (min-width: 768px) {
-    #workspace-shell { justify-content: center; }
+    #workspace-shell { align-items: flex-start; }
   }
-  #workspace-shell > .flex-1 {
-    flex: 0 0 auto;
-    flex-basis: var(--editor-track-size);
-    width: var(--editor-track-size);
-    max-width: var(--editor-track-size);
-    margin-left: 0;
-    margin-right: 0;
-    transition: margin .32s ease, max-width .32s ease, width .32s ease, flex-basis .32s ease;
-  }
-  body.pmid-sidebar-collapsed #workspace-shell {
-    --pmid-sidebar-track: var(--workspace-gap);
-    --editor-track-size: clamp(var(--editor-min-width), calc(100% - var(--workspace-gap)), var(--editor-track-max));
-  }
-  body.pmid-sidebar-collapsed #pmid-sidebar { opacity: 0; transform: translateX(-32px); margin-left: 0; margin-right: calc(-1 * var(--pmid-sidebar-track)); pointer-events: none }
+  #workspace-shell > .flex-1 { flex: 1 1 auto; min-width: 0; margin: 0; transition: margin .32s ease, max-width .32s ease, width .32s ease, flex-basis .32s ease; }
+  body.pmid-sidebar-collapsed #workspace-shell { gap: 0 }
+  body.pmid-sidebar-collapsed #pmid-sidebar { opacity: 0; transform: translateX(-28px); width: 0; max-width: 0; flex-basis: 0; margin: 0; padding-left: 0; padding-right: 0; border-width: 0; pointer-events: none; overflow: hidden }
   body.pmid-sidebar-collapsed #editor-card { margin-left: auto; margin-right: auto }
-  body.pmid-sidebar-collapsed #workspace-shell > .flex-1 {
-    margin-left: calc(var(--pmid-sidebar-track) / 2);
-    margin-right: calc(var(--pmid-sidebar-track) / 2);
-  }
   body:not(.pmid-sidebar-ready) #pmid-sidebar,
   body:not(.pmid-sidebar-ready) #workspace-shell > .flex-1 { transition: none !important }
   @media (max-width: 767px) {
@@ -324,8 +309,8 @@
 </div>
 
 <!-- Main -->
-<main class="max-w-6xl mx-auto px-4 md:px-8 pt-28 pb-12 overflow-visible">
-  <div id="workspace-shell" class="flex flex-col md:flex-row md:items-start md:justify-center gap-6">
+<main class="w-full pt-28 pb-12 overflow-visible">
+  <div id="workspace-shell" class="flex flex-col md:flex-row md:items-start gap-6">
     <aside id="pmid-sidebar" class="nice-scroll" aria-label="PMID citations panel">
       <div class="pmid-sidebar-header">
         <span class="pmid-sidebar-title">
@@ -840,10 +825,6 @@
         btn.classList.toggle('ql-active', !collapsed);
       };
       render();
-      if (mq.matches) {
-        collapsed = true;
-        render();
-      }
       btn.addEventListener('click', () => {
         collapsed = !collapsed;
         render();
@@ -852,7 +833,6 @@
         } catch (_) {}
       });
       const handleMedia = () => {
-        collapsed = true; // always start closed on mode switch
         render();
       };
       mq.addEventListener ? mq.addEventListener('change', handleMedia) : mq.addListener(handleMedia);
