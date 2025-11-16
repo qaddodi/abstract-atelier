@@ -208,12 +208,13 @@
     #workspace-shell { justify-content: center; }
   }
   #workspace-shell > .flex-1 {
-    flex: 0 0 var(--editor-track-size);
+    flex: 0 0 auto;
+    flex-basis: var(--editor-track-size);
     width: var(--editor-track-size);
     max-width: var(--editor-track-size);
     margin-left: 0;
     margin-right: 0;
-    transition: margin .32s ease, max-width .32s ease, width .32s ease;
+    transition: margin .32s ease, max-width .32s ease, width .32s ease, flex-basis .32s ease;
   }
   body.pmid-sidebar-collapsed #workspace-shell {
     --pmid-sidebar-track: var(--workspace-gap);
