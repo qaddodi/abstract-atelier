@@ -780,6 +780,7 @@
 
         let activePmid = null;
         let activeCard = null;
+        let activeLock = null; // Keeps highlight locked after a click
         const cardMap = new Map();
         const mentionCycleIndex = new Map();
 
@@ -838,13 +839,16 @@
           });
         };
 
-        const setActive = (pmid, card) => {
+        const setActive = (pmid, card, { lock = false } = {}) => {
+          if (lock) activeLock = pmid || null;
+          if (activeLock && !lock && pmid && pmid !== activeLock) return;
           if (activePmid === pmid && activeCard === card) return;
           if (activePmid) toggleInlineHighlight(activePmid, false);
           if (activeCard) activeCard.classList.remove('is-hovered');
           const previousPmid = activePmid;
           activePmid = pmid || null;
           activeCard = card || null;
+          if (!pmid) activeLock = null;
           if (activePmid && previousPmid !== activePmid) {
             mentionCycleIndex.set(activePmid, -1);
           }
@@ -854,7 +858,11 @@
           }
         };
 
-        const clearActive = () => setActive(null, null);
+        const clearActive = (force = false) => {
+          if (activeLock && !force) return;
+          activeLock = null;
+          setActive(null, null);
+        };
 
         const scrollInlineIntoView = (pmid, options = {}) => {
           if (!pmid) return;
@@ -944,16 +952,16 @@
             });
           }
           card.addEventListener('mouseenter', () => setActive(card.dataset.pmid, card));
-          card.addEventListener('mouseleave', clearActive);
-          card.addEventListener('focus', () => setActive(card.dataset.pmid, card));
-          card.addEventListener('blur', clearActive);
+          card.addEventListener('mouseleave', () => clearActive());
+          card.addEventListener('focus', () => setActive(card.dataset.pmid, card, { lock: true }));
+          card.addEventListener('blur', () => clearActive());
           card.addEventListener('click', event => {
             const clickedPmidLink = event.target instanceof Element && event.target.closest('.pmid-card-pmid-link');
             if (clickedPmidLink) return;
             event.preventDefault();
             const pmid = card.dataset.pmid;
             if (!pmid) return;
-            setActive(pmid, card);
+            setActive(pmid, card, { lock: true });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
           card.addEventListener('keydown', event => {
@@ -961,7 +969,7 @@
             event.preventDefault();
             const pmid = card.dataset.pmid;
             if (!pmid) return;
-            setActive(pmid, card);
+            setActive(pmid, card, { lock: true });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
         };
@@ -973,7 +981,7 @@
           const hasExpandedSelection = selection && selection.rangeCount && !selection.getRangeAt(0).collapsed;
           if (!token) {
             if (!hasExpandedSelection && activePmid) {
-              clearActive();
+              clearActive(true);
             }
             return;
           }
@@ -986,8 +994,17 @@
           if (!pmid) return;
 
           const card = cardMap.get(pmid);
-          if (card) setActive(pmid, card);
+          if (card) setActive(pmid, card, { lock: true });
           scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
+        });
+
+        document.addEventListener('click', event => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+          const insideSidebar = target.closest('#pmid-sidebar');
+          const inlinePmid = target.closest('.ql-pmid');
+          if (insideSidebar || inlinePmid) return;
+          clearActive(true);
         });
 
         const buildCard = pmid => {
@@ -1093,7 +1110,7 @@
           sidebar.classList.toggle('has-items', pmids.length > 0);
 
           if (!pmids.length) {
-            clearActive();
+            clearActive(true);
             cardMap.forEach(card => {
               if (card.parentElement === listEl) listEl.removeChild(card);
             });
@@ -1129,7 +1146,7 @@
           });
 
           if (activePmid && !cardMap.has(activePmid)) {
-            clearActive();
+            clearActive(true);
           }
         }, CONFIG.sidebarUpdateDebounce);
 
