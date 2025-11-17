@@ -10,7 +10,7 @@
       --toolbar-border: rgba(0,0,0,.06); /* Toolbar border color */
       --guide-line: rgba(15,23,42,.12); /* Guide line color */
       --toolbar-icon: #111827; /* Toolbar icon color */
-      --page-margin: 7.5vw; /* Page margin */
+      --page-margin: 10vw; /* Page margin */
       --pmid-sidebar-width: 350px; /* PMID sidebar width */
       --workspace-gap: clamp(1rem, 2vw, 1.5rem); /* Workspace gap */
       --editor-track-max: none; /* Max editor track width */
