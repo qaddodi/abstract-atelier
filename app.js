@@ -790,6 +790,16 @@
           card.setAttribute('aria-label', `${baseLabel}${mentionText}`);
         };
 
+        const setCardIndex = (card, index = 1) => {
+          if (!card) return;
+          const value = Math.max(1, Number(index) || 1);
+          card.dataset.index = String(value);
+          const indexBadge = card.querySelector('.pmid-card-index');
+          if (indexBadge) {
+            indexBadge.textContent = value;
+          }
+        };
+
         const setCardStack = (card, occurrences = 1) => {
           if (!card) return;
           const mentions = Math.max(1, occurrences || 1);
@@ -987,6 +997,7 @@
           card.dataset.pmid = pmid;
           card.dataset.labelBase = `PMID ${pmid} (loading)`;
           card.innerHTML = `
+            <span class="pmid-card-index" aria-hidden="true"></span>
             <div class="pmid-card-layers" aria-hidden="true"></div>
             <span class="pmid-card-count" aria-hidden="true"></span>
             <div class="pmid-card-body">
@@ -1092,7 +1103,7 @@
           }
 
           const remaining = new Set(cardMap.keys());
-          pmids.forEach(pmid => {
+          pmids.forEach((pmid, index) => {
             remaining.delete(pmid);
             if (!cardMap.has(pmid)) {
               const card = buildCard(pmid);
@@ -1103,6 +1114,7 @@
             }
             const card = cardMap.get(pmid);
             if (card) {
+              setCardIndex(card, index + 1);
               const mentions = mentionsMap.get(pmid) || 1;
               setCardStack(card, mentions);
               listEl.appendChild(card);
