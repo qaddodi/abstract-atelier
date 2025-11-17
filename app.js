@@ -1473,6 +1473,15 @@
           });
         };
 
+        const scrollCardIntoView = card => {
+          if (!sidebar || !card) return;
+          const sidebarRect = sidebar.getBoundingClientRect();
+          const cardRect = card.getBoundingClientRect();
+          const offset = cardRect.top - sidebarRect.top;
+          const target = sidebar.scrollTop + offset - 16;
+          animateScrollTo(sidebar, Math.max(0, target), { isDocument: false, duration: CONFIG.scrollDuration });
+        };
+
         const setActive = (pmid, card, { lock = false } = {}) => {
           if (lock) activeLock = pmid || null;
           if (activeLock && !lock && pmid && pmid !== activeLock) return;
@@ -1490,6 +1499,7 @@
           if (activePmid && activeCard) {
             toggleInlineHighlight(activePmid, true);
             activeCard.classList.add('is-hovered');
+            scrollCardIntoView(activeCard);
           }
         };
 
