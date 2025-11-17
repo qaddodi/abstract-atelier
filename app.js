@@ -546,11 +546,11 @@
           }
           const pmidSidebarOpen = document.body.classList.contains('pmid-sidebar-mobile-open') || !document.body.classList.contains('pmid-sidebar-collapsed');
           if (pmidSidebarOpen && abstractSidebarApi.isEnabled()) {
-            if (lastHighlightedPmid) {
-              abstractSidebarApi.show(lastHighlightedPmid);
-            } else {
-              abstractSidebarApi.openEmpty({ preserveActive: false });
-            }
+              if (lastHighlightedPmid) {
+                abstractSidebarApi.show(lastHighlightedPmid, { source: 'inline' });
+              } else {
+                abstractSidebarApi.openEmpty({ preserveActive: false });
+              }
           }
         };
         setAbstractPanelEnabled(readAbstractPanelEnabled());
@@ -853,6 +853,8 @@
         const searchForm = sidebar ? $('#abstract-search-form', sidebar) : null;
         const searchInput = sidebar ? $('#abstract-search-input', sidebar) : null;
         const searchResultsEl = sidebar ? $('#abstract-search-results', sidebar) : null;
+        const newSearchBtn = sidebar ? $('#abstract-new-search', sidebar) : null;
+        const backToResultsBtn = sidebar ? $('#abstract-back-to-results', sidebar) : null;
         const closeBtn = sidebar ? $('#abstract-sidebar-close', sidebar) : null;
         if (!sidebar || !contentEl || !emptyEl || !searchForm || !searchInput || !searchResultsEl) {
           return abstractSidebarApi;
@@ -861,6 +863,7 @@
         let currentPmid = null;
         let requestId = 0;
         let viewMode = 'search';
+        let viewSource = 'search'; // 'search' | 'inline'
         const defaultEmptyMessage = emptyEl.textContent || 'Search PubMed or select a citation.';
         const SEARCH_PAGE_SIZE = 12;
         let searchRequestId = 0;
@@ -904,7 +907,7 @@
             emptyEl.style.display = 'none';
             return;
           }
-          const hasResults = searchResultsEl && searchResultsEl.children.length > 0;
+          const hasResults = searchResultsEl && searchResultsEl.querySelector('.pmid-card');
           if (hasResults || searchState.loading) {
             emptyEl.style.display = 'none';
             return;
@@ -913,14 +916,28 @@
           emptyEl.style.display = 'block';
         };
 
-        const setViewMode = mode => {
+        const setViewMode = (mode, source = viewSource) => {
           viewMode = mode;
+          viewSource = source || 'search';
+          const showSearchUi = !(mode === 'abstract' && viewSource === 'inline');
+          const isSearchAbstract = mode === 'abstract' && viewSource === 'search';
           if (contentEl) contentEl.style.display = mode === 'abstract' ? 'block' : 'none';
           if (searchResultsEl) searchResultsEl.style.display = mode === 'search' ? 'flex' : 'none';
+          const hasResults = searchResultsEl && searchResultsEl.children.length > 0;
+          const showNewSearch = mode === 'search' && hasResults;
+          if (backToResultsBtn) backToResultsBtn.style.display = mode === 'abstract' && showSearchUi ? 'inline-flex' : 'none';
+          if (newSearchBtn) newSearchBtn.style.display = showNewSearch ? 'inline-flex' : 'none';
+          const fadeSearch = (mode === 'abstract' && showSearchUi) || showNewSearch;
+          if (searchForm) searchForm.classList.toggle('is-faded', fadeSearch);
+          const searchShell = sidebar ? $('#abstract-search-shell', sidebar) : null;
+          if (searchShell) searchShell.style.display = showSearchUi ? 'block' : 'none';
+          document.body.classList.toggle('abstract-from-search', isSearchAbstract);
           if (mode === 'abstract') {
             hideEmpty();
           } else {
             updateEmptyForSearch();
+            animateSearchResults();
+            refreshSearchCitedBadges();
           }
         };
 
@@ -928,6 +945,117 @@
           setViewMode('search');
           updateEmptyForSearch();
           contentEl.innerHTML = '';
+        };
+        const resetSearch = () => {
+          searchState.query = '';
+          searchState.total = 0;
+          searchState.start = 0;
+          searchResultsEl.innerHTML = '';
+          clearSearchLoading();
+          setEmptyMessage(defaultEmptyMessage);
+          updateEmptyForSearch();
+          if (searchInput) {
+            searchInput.value = '';
+            searchInput.focus();
+          }
+          setViewMode('search', 'search');
+        };
+
+        const animateContent = () => {
+          const firstChild = contentEl && contentEl.firstElementChild;
+          if (!firstChild) return;
+          firstChild.classList.remove('is-visible');
+          // Force reflow then animate
+          // eslint-disable-next-line no-unused-expressions
+          firstChild.offsetWidth;
+          requestAnimationFrame(() => firstChild.classList.add('is-visible'));
+        };
+
+        const animateSearchResults = () => {
+          if (!searchResultsEl) return;
+          Array.from(searchResultsEl.children || []).forEach(child => {
+            if (!(child instanceof HTMLElement)) return;
+            child.classList.add('abstract-transition');
+            child.classList.remove('is-visible');
+            // eslint-disable-next-line no-unused-expressions
+            child.offsetWidth;
+            requestAnimationFrame(() => child.classList.add('is-visible'));
+          });
+        };
+
+        const isPmidInText = pmid => {
+          if (!pmid) return false;
+          const formatted = quill?.root?.querySelector(`.ql-pmid[data-pmid="${pmid}"]`);
+          if (formatted) return true;
+          const text = (quill?.getText() || '').toString();
+          const pattern = new RegExp(`(^|[^0-9])${pmid}([^0-9]|$)`);
+          return pattern.test(text);
+        };
+
+        const refreshSearchCitedBadges = () => {
+          if (!searchResultsEl) return;
+          Array.from(searchResultsEl.querySelectorAll('.pmid-card')).forEach(card => {
+            const badge = card.querySelector('.pmid-card-cited-badge');
+            const pmid = card.dataset.pmid;
+            const cited = pmid ? isPmidInText(pmid) : false;
+            card.classList.toggle('pmid-card-is-cited', cited);
+            if (badge) badge.style.display = cited ? 'inline-flex' : 'none';
+          });
+        };
+
+        const findCitationBlock = (text, pos) => {
+          const isAllowed = char => /[0-9,\s]/.test(char);
+          let start = pos - 1;
+          while (start >= 0 && isAllowed(text[start])) start--;
+          start += 1;
+          let end = pos;
+          while (end < text.length && isAllowed(text[end])) end++;
+          if (start >= end) return null;
+          const segment = text.slice(start, end);
+          const leading = segment.match(/^\s*/)?.[0]?.length || 0;
+          const trailing = segment.match(/\s*$/)?.[0]?.length || 0;
+          const trimmedStart = start + leading;
+          const trimmedEnd = end - trailing;
+          if (trimmedStart >= trimmedEnd) return null;
+          const core = text.slice(trimmedStart, trimmedEnd);
+          if (!/\d/.test(core)) return null;
+          return { start: trimmedStart, end: trimmedEnd };
+        };
+
+        const insertCitation = pmid => {
+          if (!quill) return;
+          if (document.body.classList.contains('view-only-mode')) return;
+          const selection = quill.getSelection(true) || { index: quill.getLength(), length: 0 };
+          const pos = selection.index;
+          const text = quill.getText();
+          const block = findCitationBlock(text, pos);
+          let targetIndex = pos;
+          if (block) {
+            const inside = text.slice(block.start, block.end);
+            const parts = inside.split(',').map(s => s.trim()).filter(Boolean);
+            if (!parts.includes(String(pmid))) {
+              parts.push(String(pmid));
+            }
+            const newBlockCore = parts.join(', ');
+            const charBefore = block.start > 0 ? text[block.start - 1] : '';
+            const charAfter = block.end < text.length ? text[block.end] : '';
+            const prefix = charBefore && !/\s/.test(charBefore) ? ' ' : '';
+            const suffix = charAfter && !/[\s.,;:!?]/.test(charAfter) ? ' ' : '';
+            const newBlock = `${prefix}${newBlockCore}${suffix}`;
+            quill.deleteText(block.start, (block.end - block.start), 'user');
+            quill.insertText(block.start, newBlock, 'user');
+            targetIndex = block.start + newBlock.length;
+          } else {
+            const charBefore = pos > 0 ? text[pos - 1] : '';
+            const charAfter = pos < text.length ? text[pos] : '';
+            const prefix = charBefore && !/\s/.test(charBefore) ? ' ' : '';
+            const suffix = charAfter && !/[\s.,;:!?]/.test(charAfter) ? ' ' : '';
+            const newBlock = `${prefix}${pmid}${suffix}`;
+            quill.insertText(pos, newBlock, 'user');
+            targetIndex = pos + newBlock.length;
+          }
+          quill.setSelection(targetIndex, 0, 'user');
+          quill.focus();
         };
 
         const hideEmpty = () => {
@@ -938,7 +1066,7 @@
           setViewMode('abstract');
           hideEmpty();
           contentEl.innerHTML = `
-            <div class="flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 py-6">
+            <div class="flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 py-6 abstract-transition">
               <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -946,16 +1074,18 @@
               <span class="text-xs uppercase tracking-[0.2em]">Loading PMID ${pmid}</span>
             </div>
           `;
+          animateContent();
         };
 
         const renderError = () => {
           setViewMode('abstract');
           hideEmpty();
-          contentEl.innerHTML = '<div class="text-center text-sm text-red-500 py-4">Unable to load abstract.</div>';
+          contentEl.innerHTML = '<div class="text-center text-sm text-red-500 py-4 abstract-transition">Unable to load abstract.</div>';
+          animateContent();
         };
 
         const renderMetadata = (pmid, metadata) => {
-          setViewMode('abstract');
+          setViewMode('abstract', viewSource);
           hideEmpty();
           const journalLabel = metadata?.journalAbbrev || metadata?.journalTitle || '—';
           const yearLabel = metadata?.year || '—';
@@ -964,12 +1094,23 @@
           const abstractMarkup = metadata?.abstractHtml
             ? `<div class="abstract-sidebar-abstract nice-scroll">${metadata.abstractHtml}</div>`
             : '<div class="abstract-sidebar-abstract text-gray-600 dark:text-gray-300">No abstract available.</div>';
+          const inText = isPmidInText(pmid);
+          const isViewOnly = document.body.classList.contains('view-only-mode');
+          const showCite = !isViewOnly && (viewSource === 'search' || !inText);
+          const citeLabel = inText && viewSource === 'search' ? 'CITED' : 'Cite';
+          const citeClass = inText && viewSource === 'search' ? ' abstract-sidebar-cite-btn is-cited' : ' abstract-sidebar-cite-btn';
+          const citeButton = showCite
+            ? `<button type="button" class="${citeClass.trim()}" aria-label="Cite this abstract">${citeLabel}</button>`
+            : '';
 
           contentEl.innerHTML = `
-            <div class="abstract-sidebar-card">
+            <div class="abstract-sidebar-card abstract-transition">
               <div class="abstract-sidebar-meta-top">
-                <a class="abstract-sidebar-pmid hover:text-blue-600 dark:hover:text-blue-400 transition-colors" href="${CONFIG.pubmedBaseUrl}${pmid}/" target="_blank" rel="noopener noreferrer">PMID ${pmid}</a>
-                <span class="abstract-sidebar-year">${yearLabel}</span>
+                <div class="abstract-sidebar-meta-left">
+                  <a class="abstract-sidebar-pmid hover:text-blue-600 dark:hover:text-blue-400 transition-colors" href="${CONFIG.pubmedBaseUrl}${pmid}/" target="_blank" rel="noopener noreferrer">PMID ${pmid}</a>
+                  <span class="abstract-sidebar-year">${yearLabel}</span>
+                </div>
+                ${citeButton}
               </div>
               <div class="abstract-sidebar-title-text">${titleLabel}</div>
               ${abstractMarkup}
@@ -979,6 +1120,18 @@
               </div>
             </div>
           `;
+          const citeBtnEl = contentEl.querySelector('.abstract-sidebar-cite-btn');
+          if (citeBtnEl) {
+            citeBtnEl.addEventListener('click', event => {
+              event.preventDefault();
+              insertCitation(pmid);
+              refreshSearchCitedBadges();
+              citeBtnEl.textContent = 'CITED';
+              citeBtnEl.classList.add('is-cited');
+              setTimeout(refreshSearchCitedBadges, 0);
+            });
+          }
+          animateContent();
         };
 
         const hide = (force = false) => {
@@ -995,11 +1148,12 @@
           return !document.body.classList.contains('pmid-sidebar-collapsed');
         };
 
-        const show = async pmid => {
+        const show = async (pmid, { source = 'inline' } = {}) => {
           if (!pmid || !abstractSidebarEnabled() || !canOpenSidebar()) {
             hide(true);
             return;
           }
+          viewSource = source || 'inline';
           currentPmid = pmid;
           const myRequest = ++requestId;
           setOpen(true);
@@ -1062,16 +1216,19 @@
             typeEl.textContent = metadata.typeShort || metadata.typeFull || 'Article';
             typeEl.classList.remove('pmid-card-loading');
           }
+          refreshSearchCitedBadges();
         };
 
         const buildSearchResultCard = (pmid, index) => {
           const card = document.createElement('button');
           card.type = 'button';
           card.className = 'pmid-card abstract-search-card';
+          card.classList.add('abstract-transition');
           card.dataset.pmid = pmid;
           card.dataset.labelBase = `PMID ${pmid} search result`;
           card.innerHTML = `
             <span class="pmid-card-index" aria-hidden="true"></span>
+            <span class="pmid-card-cited-badge" aria-hidden="true">CITED</span>
             <span class="pmid-card-count" aria-hidden="true"></span>
             <div class="pmid-card-body">
               <div class="pmid-card-meta">
@@ -1088,12 +1245,12 @@
           setSearchCardIndex(card, index);
           card.addEventListener('click', () => {
             if (!pmid) return;
-            show(pmid);
+            show(pmid, { source: 'search' });
           });
           card.addEventListener('keydown', event => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
-            show(pmid);
+            show(pmid, { source: 'search' });
           });
           fetchPmidMetadata(pmid)
             .then(metadata => hydrateSearchCard(card, metadata))
@@ -1138,6 +1295,7 @@
             searchResultsEl.innerHTML = '';
             setEmptyMessage(defaultEmptyMessage);
             updateEmptyForSearch();
+            setViewMode('search', 'search');
             return;
           }
           if (searchState.loading) return;
@@ -1166,14 +1324,18 @@
             clearSearchLoading();
             if (!ids.length && (!append || !searchResultsEl.children.length)) {
               updateEmptyForSearch();
+              setViewMode('search', 'search');
               return;
             }
             ids.forEach((pmid, index) => {
               const cardIndex = start + index + 1;
               const card = buildSearchResultCard(pmid, cardIndex);
               searchResultsEl.appendChild(card);
+              animateSearchResults();
             });
             updateEmptyForSearch();
+            refreshSearchCitedBadges();
+            setViewMode('search', 'search');
           } catch (error) {
             if (myRequest !== searchRequestId) return;
             searchState.loading = false;
@@ -1205,6 +1367,19 @@
             searchPubmed({ append: false });
           }
         });
+
+        if (backToResultsBtn) {
+          backToResultsBtn.addEventListener('click', () => {
+            setViewMode('search', 'search');
+            scrollSidebarToTop();
+          });
+        }
+        if (newSearchBtn) {
+          newSearchBtn.addEventListener('click', event => {
+            event.preventDefault();
+            resetSearch();
+          });
+        }
 
         sidebar.addEventListener('scroll', () => {
           maybeLoadMore();
@@ -1434,7 +1609,7 @@
             const pmid = card.dataset.pmid;
             if (!pmid) return;
             setActive(pmid, card, { lock: true });
-            abstractSidebarApi.show(pmid);
+            abstractSidebarApi.show(pmid, { source: 'inline' });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
           card.addEventListener('keydown', event => {
@@ -1443,7 +1618,7 @@
             const pmid = card.dataset.pmid;
             if (!pmid) return;
             setActive(pmid, card, { lock: true });
-            abstractSidebarApi.show(pmid);
+            abstractSidebarApi.show(pmid, { source: 'inline' });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
         };
@@ -1474,7 +1649,7 @@
           const isFirstClick = !isSameAsActive || !Number.isInteger(currentIndex) || currentIndex < 0;
           const card = cardMap.get(pmid);
           if (card) setActive(pmid, card, { lock: true });
-          abstractSidebarApi.show(pmid);
+          abstractSidebarApi.show(pmid, { source: 'inline' });
           if (isFirstClick) {
             mentionCycleIndex.set(pmid, 0);
             return;
@@ -1485,6 +1660,10 @@
         document.addEventListener('click', event => {
           const target = event.target;
           if (!(target instanceof Element)) return;
+          if (document.body.classList.contains('abstract-from-search')) {
+            hideInlinePopup();
+            return;
+          }
           const insideSidebar = target.closest('#pmid-sidebar');
           const insideAbstractSidebar = target.closest('#abstract-sidebar');
           const inlinePmid = target.closest('.ql-pmid');
