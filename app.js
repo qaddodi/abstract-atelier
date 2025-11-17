@@ -77,7 +77,45 @@
         theme: 'theme',
         sidebar: 'abstract-atelier:sidebar-visibility',
         content: 'abstract-atelier:content',
-        viewMode: 'abstract-atelier:view-mode'
+        viewMode: 'abstract-atelier:view-mode',
+        abstractPanel: 'abstract-atelier:abstract-panel'
+      };
+
+      // Shared state holders
+      let abstractSidebarApi = {
+        show: () => {},
+        hide: () => {},
+        openEmpty: () => {},
+        isActive: () => false,
+        isEnabled: () => true,
+        getActive: () => null
+      };
+      let hideInlinePopup = () => {};
+      let forceClearActive = () => {};
+      let abstractPanelEnabled = true;
+      let lastHighlightedPmid = null;
+
+      const readAbstractPanelEnabled = () => {
+        try {
+          return localStorage.getItem(STORAGE_KEYS.abstractPanel) !== 'off';
+        } catch (_) {
+          return true;
+        }
+      };
+      const setAbstractPanelEnabled = value => {
+        abstractPanelEnabled = !!value;
+        document.body.classList.toggle('abstract-sidebar-disabled', !abstractPanelEnabled);
+        try {
+          localStorage.setItem(STORAGE_KEYS.abstractPanel, abstractPanelEnabled ? 'on' : 'off');
+        } catch (_) {}
+      };
+      const syncAbstractToggleButton = () => {
+        const btn = $('#toggle-abstract');
+        if (!btn) return;
+        btn.classList.toggle('ql-active', abstractPanelEnabled);
+        btn.setAttribute('aria-pressed', abstractPanelEnabled ? 'true' : 'false');
+        btn.setAttribute('aria-label', abstractPanelEnabled ? 'Disable abstract panel' : 'Enable abstract panel');
+        btn.title = abstractPanelEnabled ? 'Disable abstract panel' : 'Enable abstract panel';
       };
 
       // Utilities
@@ -458,19 +496,28 @@
         };
         let collapsed = readStoredState();
         const mq = window.matchMedia('(max-width: 767px)');
+        const isMobile = () => mq.matches;
+        const ensureAbstractOpen = () => {
+          if (isMobile() || collapsed || !abstractSidebarApi.isEnabled()) return;
+          abstractSidebarApi.openEmpty({ preserveActive: true });
+        };
         const render = () => {
-          const isMobile = mq.matches;
-          if (isMobile) {
+          const mobile = isMobile();
+          if (mobile) {
             document.body.classList.remove('pmid-sidebar-collapsed');
             document.body.classList.toggle('pmid-sidebar-mobile-open', !collapsed);
           } else {
             document.body.classList.remove('pmid-sidebar-mobile-open');
             document.body.classList.toggle('pmid-sidebar-collapsed', collapsed);
+            if (collapsed) {
+              abstractSidebarApi.hide(true);
+            }
           }
           sidebar.setAttribute('aria-hidden', collapsed ? 'true' : 'false');
           btn.setAttribute('aria-label', collapsed ? 'Show citations panel' : 'Hide citations panel');
           btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
           btn.classList.toggle('ql-active', !collapsed);
+          ensureAbstractOpen();
         };
         render();
         btn.addEventListener('click', () => {
@@ -484,6 +531,33 @@
           render();
         };
         mq.addEventListener ? mq.addEventListener('change', handleMedia) : mq.addListener(handleMedia);
+      };
+
+      const initAbstractPanelToggle = () => {
+        const btn = $('#toggle-abstract');
+        if (!btn) return;
+        const apply = () => {
+          document.body.classList.toggle('abstract-sidebar-disabled', !abstractPanelEnabled);
+          syncAbstractToggleButton();
+          if (!abstractPanelEnabled) {
+            abstractSidebarApi.hide(true);
+            return;
+          }
+          const pmidSidebarOpen = document.body.classList.contains('pmid-sidebar-mobile-open') || !document.body.classList.contains('pmid-sidebar-collapsed');
+          if (pmidSidebarOpen && abstractSidebarApi.isEnabled()) {
+            if (lastHighlightedPmid) {
+              abstractSidebarApi.show(lastHighlightedPmid);
+            } else {
+              abstractSidebarApi.openEmpty({ preserveActive: false });
+            }
+          }
+        };
+        setAbstractPanelEnabled(readAbstractPanelEnabled());
+        apply();
+        btn.addEventListener('click', () => {
+          setAbstractPanelEnabled(!abstractPanelEnabled);
+          apply();
+        });
       };
 
       const initQuill = () => {
@@ -771,6 +845,147 @@
         highlightPMIDs();
       };
 
+      const initAbstractSidebar = quill => {
+        const sidebar = document.getElementById('abstract-sidebar');
+        const contentEl = sidebar ? $('#abstract-sidebar-content', sidebar) : null;
+        const emptyEl = sidebar ? $('#abstract-sidebar-empty', sidebar) : null;
+        const closeBtn = sidebar ? $('#abstract-sidebar-close', sidebar) : null;
+        if (!sidebar || !contentEl || !emptyEl) {
+          return abstractSidebarApi;
+        }
+
+        let currentPmid = null;
+        let requestId = 0;
+
+        const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+
+        const abstractSidebarEnabled = () => abstractPanelEnabled;
+
+        const setOpen = open => {
+          if (!abstractSidebarEnabled()) {
+            document.body.classList.remove('abstract-sidebar-open');
+            return;
+          }
+          document.body.classList.toggle('abstract-sidebar-open', open);
+        };
+
+        const showEmpty = () => {
+          emptyEl.style.display = 'block';
+          contentEl.innerHTML = '';
+        };
+
+        const hideEmpty = () => {
+          emptyEl.style.display = 'none';
+        };
+
+        const renderLoading = pmid => {
+          hideEmpty();
+          contentEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 py-6">
+              <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span class="text-xs uppercase tracking-[0.2em]">Loading PMID ${pmid}</span>
+            </div>
+          `;
+        };
+
+        const renderError = () => {
+          hideEmpty();
+          contentEl.innerHTML = '<div class="text-center text-sm text-red-500 py-4">Unable to load abstract.</div>';
+        };
+
+        const renderMetadata = (pmid, metadata) => {
+          hideEmpty();
+          const journalLabel = metadata?.journalAbbrev || metadata?.journalTitle || '—';
+          const yearLabel = metadata?.year || '—';
+          const titleLabel = metadata?.title || 'Title unavailable';
+          const typeLabel = metadata?.typeShort || metadata?.typeFull || 'Article';
+          const abstractMarkup = metadata?.abstractHtml
+            ? `<div class="abstract-sidebar-abstract nice-scroll">${metadata.abstractHtml}</div>`
+            : '<div class="abstract-sidebar-abstract text-gray-600 dark:text-gray-300">No abstract available.</div>';
+
+          contentEl.innerHTML = `
+            <div class="abstract-sidebar-card">
+              <div class="abstract-sidebar-meta-top">
+                <a class="abstract-sidebar-pmid hover:text-blue-600 dark:hover:text-blue-400 transition-colors" href="${CONFIG.pubmedBaseUrl}${pmid}/" target="_blank" rel="noopener noreferrer">PMID ${pmid}</a>
+                <span class="abstract-sidebar-year">${yearLabel}</span>
+              </div>
+              <div class="abstract-sidebar-title-text">${titleLabel}</div>
+              ${abstractMarkup}
+              <div class="abstract-sidebar-bottom">
+                <span class="abstract-sidebar-journal" title="${journalLabel}">${journalLabel}</span>
+                <span class="abstract-sidebar-type" title="${metadata?.typeFull || typeLabel}">${typeLabel}</span>
+              </div>
+            </div>
+          `;
+        };
+
+        const hide = (force = false) => {
+          if (!force && !isMobile()) return;
+          currentPmid = null;
+          requestId += 1;
+          setOpen(false);
+          showEmpty();
+        };
+
+        const canOpenSidebar = () => {
+          const mobile = isMobile();
+          if (mobile) return true;
+          return !document.body.classList.contains('pmid-sidebar-collapsed');
+        };
+
+        const show = async pmid => {
+          if (!pmid || !abstractSidebarEnabled() || !canOpenSidebar()) {
+            hide(true);
+            return;
+          }
+          currentPmid = pmid;
+          const myRequest = ++requestId;
+          setOpen(true);
+          hideInlinePopup();
+          renderLoading(pmid);
+          try {
+            const metadata = await fetchPmidMetadata(pmid);
+            if (myRequest !== requestId || currentPmid !== pmid) return;
+            renderMetadata(pmid, metadata || { pmid });
+          } catch (error) {
+            if (myRequest !== requestId || currentPmid !== pmid) return;
+            renderError();
+          }
+        };
+
+        const openEmpty = ({ preserveActive = false } = {}) => {
+          if (!abstractSidebarEnabled() || !canOpenSidebar()) return;
+          if (!preserveActive) {
+            currentPmid = null;
+            requestId += 1;
+          }
+          setOpen(true);
+          if (!preserveActive) {
+            showEmpty();
+          }
+        };
+
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            hide(true);
+            forceClearActive();
+            quill?.focus?.();
+          });
+        }
+
+        return {
+          show,
+          hide,
+          openEmpty,
+          isActive: pmid => !!pmid && pmid === currentPmid,
+          isEnabled: abstractSidebarEnabled,
+          getActive: () => currentPmid
+        };
+      };
+
       const initPmidSidebar = quill => {
         const sidebar = $('#pmid-sidebar');
         const listEl = sidebar ? $('#pmid-card-list', sidebar) : null;
@@ -849,6 +1064,7 @@
           activePmid = pmid || null;
           activeCard = card || null;
           if (!pmid) activeLock = null;
+          lastHighlightedPmid = activePmid;
           if (activePmid && previousPmid !== activePmid) {
             mentionCycleIndex.set(activePmid, -1);
           }
@@ -858,11 +1074,23 @@
           }
         };
 
-        const clearActive = (force = false) => {
+        const clearActive = (force = false, { hideAbstract = true, keepClosed = false } = {}) => {
           if (activeLock && !force) return;
           activeLock = null;
           setActive(null, null);
+          if (force) {
+            if (hideAbstract) {
+              abstractSidebarApi.hide(true);
+            } else {
+              const abstractIsOpen = document.body.classList.contains('abstract-sidebar-open');
+              if (abstractIsOpen || !keepClosed) {
+                abstractSidebarApi.openEmpty({ preserveActive: false });
+              }
+            }
+            hideInlinePopup();
+          }
         };
+        forceClearActive = () => clearActive(true);
 
         const scrollInlineIntoView = (pmid, options = {}) => {
           if (!pmid) return;
@@ -962,6 +1190,7 @@
             const pmid = card.dataset.pmid;
             if (!pmid) return;
             setActive(pmid, card, { lock: true });
+            abstractSidebarApi.show(pmid);
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
           card.addEventListener('keydown', event => {
@@ -970,6 +1199,7 @@
             const pmid = card.dataset.pmid;
             if (!pmid) return;
             setActive(pmid, card, { lock: true });
+            abstractSidebarApi.show(pmid);
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
         };
@@ -981,7 +1211,9 @@
           const hasExpandedSelection = selection && selection.rangeCount && !selection.getRangeAt(0).collapsed;
           if (!token) {
             if (!hasExpandedSelection && activePmid) {
-              clearActive(true);
+              const isMobile = window.matchMedia('(max-width: 767px)').matches;
+              clearActive(true, { hideAbstract: isMobile, keepClosed: true });
+              if (isMobile) abstractSidebarApi.hide(true);
             }
             return;
           }
@@ -993,8 +1225,16 @@
           const pmid = token.getAttribute('data-pmid');
           if (!pmid) return;
 
+          const currentIndex = mentionCycleIndex.get(pmid);
+          const isSameAsActive = activePmid === pmid;
+          const isFirstClick = !isSameAsActive || !Number.isInteger(currentIndex) || currentIndex < 0;
           const card = cardMap.get(pmid);
           if (card) setActive(pmid, card, { lock: true });
+          abstractSidebarApi.show(pmid);
+          if (isFirstClick) {
+            mentionCycleIndex.set(pmid, 0);
+            return;
+          }
           scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
         });
 
@@ -1002,9 +1242,17 @@
           const target = event.target;
           if (!(target instanceof Element)) return;
           const insideSidebar = target.closest('#pmid-sidebar');
+          const insideAbstractSidebar = target.closest('#abstract-sidebar');
           const inlinePmid = target.closest('.ql-pmid');
-          if (insideSidebar || inlinePmid) return;
-          clearActive(true);
+          const toggleBtn = target.closest('#toggle-sidebar');
+          const toggleAbstractBtn = target.closest('#toggle-abstract');
+          if (insideSidebar || insideAbstractSidebar || inlinePmid || toggleBtn || toggleAbstractBtn) return;
+          const isMobile = window.matchMedia('(max-width: 767px)').matches;
+          clearActive(true, { hideAbstract: isMobile, keepClosed: true });
+          if (isMobile) {
+            abstractSidebarApi.hide(true);
+          }
+          hideInlinePopup();
         });
 
         const buildCard = pmid => {
@@ -1111,6 +1359,8 @@
 
           if (!pmids.length) {
             clearActive(true);
+            abstractSidebarApi.hide(true);
+            hideInlinePopup();
             cardMap.forEach(card => {
               if (card.parentElement === listEl) listEl.removeChild(card);
             });
@@ -1147,6 +1397,7 @@
 
           if (activePmid && !cardMap.has(activePmid)) {
             clearActive(true);
+            abstractSidebarApi.hide(true);
           }
         }, CONFIG.sidebarUpdateDebounce);
 
@@ -1318,6 +1569,7 @@
         const showPopup = async element => {
           const pmid = element.getAttribute('data-pmid');
           if (!pmid) return;
+          if (abstractSidebarApi.isActive && abstractSidebarApi.isActive(pmid)) return;
           anchor = element;
           clearHideTimer();
           popup.classList.add('popup-open');
@@ -1356,9 +1608,12 @@
           popup.dataset.maxHeight = '0';
           anchor = null;
         };
+        hideInlinePopup = hidePopup;
         quill.root.addEventListener('mouseover', event => {
           const target = event.target.closest('.ql-pmid');
           if (!target) return;
+          const suppressHover = abstractSidebarApi.isEnabled && abstractSidebarApi.isEnabled();
+          if (suppressHover && abstractSidebarApi.isActive && abstractSidebarApi.isActive(target.getAttribute('data-pmid'))) return;
           clearHideTimer();
           showPopup(target);
         });
@@ -1397,14 +1652,17 @@
         initTitleSizing();
         const { quill, toolbarEl } = initQuill();
         initViewToggle(quill);
-        const sidebarEl = document.getElementById('pmid-sidebar');
-        initSidebarToggle(sidebarEl);
         setupToolbarSnap(toolbarEl, quill);
         initExport(quill);
         initCopy(quill);
         const { ensureCaretBelowTop, topbarEl } = initLayout(quill);
         initStatsAndHighlighting(quill, ensureCaretBelowTop);
+        setAbstractPanelEnabled(readAbstractPanelEnabled());
+        abstractSidebarApi = initAbstractSidebar(quill);
         initPmidSidebar(quill);
+        const sidebarEl = document.getElementById('pmid-sidebar');
+        initSidebarToggle(sidebarEl);
+        initAbstractPanelToggle();
         initPersistence(quill);
         initPopup(quill, topbarEl);
       };

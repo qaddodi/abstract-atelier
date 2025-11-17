@@ -177,8 +177,7 @@
       align-items: center;
       justify-content: center;
       gap: .5rem;
-      overflow-x: auto;
-      overflow-y: hidden;
+      overflow: visible;
       white-space: nowrap;
       flex-wrap: nowrap;
       scrollbar-width: thin;
@@ -235,25 +234,59 @@
       padding: 0;
       color: var(--toolbar-icon);
       background: transparent;
+      position: relative;
     }
     .ql-custom-btn svg {
       pointer-events: none;
     }
-    .ql-custom-btn:hover, .ql-custom-btn:focus-visible {
-      color: rgba(59,130,246,1);
+    .ql-custom-btn[data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 8px);
+      transform: translateX(-50%) translateY(-4px);
+      padding: 6px 8px;
+      background: rgba(15,23,42,.9);
+      color: #f8fafc;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.2;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: 0 8px 20px rgba(0,0,0,.24);
+      transition: opacity .15s ease, transform .15s ease;
+      z-index: 10000;
+    }
+    .dark .ql-custom-btn[data-tooltip]::after {
+      background: rgba(15,23,42,.94);
+      color: #e5e7eb;
+    }
+    .ql-custom-btn[data-tooltip]:hover::after,
+    .ql-custom-btn[data-tooltip]:focus-visible::after {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    #toggle-abstract svg {
+      stroke: currentColor;
+    }
+    .ql-custom-btn:hover:not(.ql-active),
+    .ql-custom-btn:focus-visible:not(.ql-active) {
+      color: #60a5fa; /* brighter sky blue on hover/focus */
       outline: none;
     }
     .ql-custom-btn.ql-active {
-      color: rgba(29,78,216,1);
+      color: #1e3a8a; /* deep blue when active */
     }
     .dark .ql-custom-btn {
       background: transparent;
     }
-    .dark .ql-custom-btn:hover, .dark .ql-custom-btn:focus-visible {
-      color: rgba(191,219,254,1);
+    .dark .ql-custom-btn:hover:not(.ql-active),
+    .dark .ql-custom-btn:focus-visible:not(.ql-active) {
+      color: #bfdbfe; /* light but bluer hover in dark mode */
     }
     .dark .ql-custom-btn.ql-active {
-      color: rgba(147,197,253,1);
+      color: #60a5fa; /* active in dark mode (brighter) */
     }
     .toolbar-formatting {
       position: relative;
