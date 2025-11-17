@@ -498,10 +498,6 @@
         let collapsed = readStoredState();
         const mq = window.matchMedia('(max-width: 767px)');
         const isMobile = () => mq.matches;
-        const ensureAbstractOpen = () => {
-          if (isMobile() || collapsed || !abstractSidebarApi.isEnabled()) return;
-          abstractSidebarApi.openEmpty({ preserveActive: true });
-        };
         const render = () => {
           const mobile = isMobile();
           if (mobile) {
@@ -518,7 +514,6 @@
           btn.setAttribute('aria-label', collapsed ? 'Show citations panel' : 'Hide citations panel');
           btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
           btn.classList.toggle('ql-active', !collapsed);
-          ensureAbstractOpen();
         };
         render();
         btn.addEventListener('click', () => {
@@ -543,14 +538,6 @@
           if (!abstractPanelEnabled) {
             abstractSidebarApi.hide(true);
             return;
-          }
-          const pmidSidebarOpen = document.body.classList.contains('pmid-sidebar-mobile-open') || !document.body.classList.contains('pmid-sidebar-collapsed');
-          if (pmidSidebarOpen && abstractSidebarApi.isEnabled()) {
-              if (lastHighlightedPmid) {
-                abstractSidebarApi.show(lastHighlightedPmid, { source: 'inline' });
-              } else {
-                abstractSidebarApi.openEmpty({ preserveActive: false });
-              }
           }
         };
         setAbstractPanelEnabled(readAbstractPanelEnabled());
@@ -879,6 +866,8 @@
 
         const abstractSidebarEnabled = () => abstractPanelEnabled;
 
+        const searchAllowed = () => !isMobile();
+
         const scrollSidebarToTop = () => {
           if (!sidebar) return;
           if (typeof sidebar.scrollTo === 'function') {
@@ -919,14 +908,15 @@
         const setViewMode = (mode, source = viewSource) => {
           viewMode = mode;
           viewSource = source || 'search';
-          const showSearchUi = !(mode === 'abstract' && viewSource === 'inline');
+          const searchEnabled = searchAllowed();
+          const showSearchUi = searchEnabled && !(mode === 'abstract' && viewSource === 'inline');
           const isSearchAbstract = mode === 'abstract' && viewSource === 'search';
           if (contentEl) contentEl.style.display = mode === 'abstract' ? 'block' : 'none';
-          if (searchResultsEl) searchResultsEl.style.display = mode === 'search' ? 'flex' : 'none';
+          if (searchResultsEl) searchResultsEl.style.display = mode === 'search' && searchEnabled ? 'flex' : 'none';
           const hasResults = searchResultsEl && searchResultsEl.children.length > 0;
           const showNewSearch = mode === 'search' && hasResults;
           if (backToResultsBtn) backToResultsBtn.style.display = mode === 'abstract' && showSearchUi ? 'inline-flex' : 'none';
-          if (newSearchBtn) newSearchBtn.style.display = showNewSearch ? 'inline-flex' : 'none';
+          if (newSearchBtn) newSearchBtn.style.display = showNewSearch && searchEnabled ? 'inline-flex' : 'none';
           const fadeSearch = (mode === 'abstract' && showSearchUi) || showNewSearch;
           if (searchForm) searchForm.classList.toggle('is-faded', fadeSearch);
           const searchShell = sidebar ? $('#abstract-search-shell', sidebar) : null;
@@ -938,6 +928,25 @@
             updateEmptyForSearch();
             animateSearchResults();
             refreshSearchCitedBadges();
+          }
+        };
+
+        const applySearchAvailability = () => {
+          const enabled = searchAllowed();
+          if (searchInput) {
+            searchInput.disabled = !enabled;
+            searchInput.placeholder = enabled ? 'Search PubMed' : 'Search unavailable on mobile';
+          }
+          if (searchForm) {
+            searchForm.style.display = enabled ? 'flex' : 'none';
+          }
+          if (!enabled) {
+            searchResultsEl.innerHTML = '';
+            setEmptyMessage('Search is unavailable on mobile.');
+            updateEmptyForSearch();
+            setViewMode('search', 'search');
+          } else {
+            setViewMode(viewMode, viewSource);
           }
         };
 
@@ -1142,14 +1151,14 @@
           showEmpty();
         };
 
-        const canOpenSidebar = () => {
-          const mobile = isMobile();
-          if (mobile) return true;
+        const canOpenSidebar = (force = false) => {
+          if (isMobile()) return true;
+          if (force) return true;
           return !document.body.classList.contains('pmid-sidebar-collapsed');
         };
 
-        const show = async (pmid, { source = 'inline' } = {}) => {
-          if (!pmid || !abstractSidebarEnabled() || !canOpenSidebar()) {
+        const show = async (pmid, { source = 'inline', forceOpen = false } = {}) => {
+          if (!pmid || !abstractSidebarEnabled() || !canOpenSidebar(forceOpen)) {
             hide(true);
             return;
           }
@@ -1287,6 +1296,12 @@
         };
 
         const searchPubmed = async ({ append = false } = {}) => {
+          if (!searchAllowed()) {
+            setEmptyMessage('Search is unavailable on mobile.');
+            updateEmptyForSearch();
+            setViewMode('search', 'search');
+            return;
+          }
           const query = (searchInput.value || '').trim();
           if (!query) {
             searchState.query = '';
@@ -1386,6 +1401,12 @@
         }, { passive: true });
 
         setViewMode('search');
+        const mobileMatcher = window.matchMedia('(max-width: 767px)');
+        const handleMobileChange = () => {
+          applySearchAvailability();
+        };
+        mobileMatcher.addEventListener ? mobileMatcher.addEventListener('change', handleMobileChange) : mobileMatcher.addListener(handleMobileChange);
+        applySearchAvailability();
 
         if (closeBtn) {
           closeBtn.addEventListener('click', () => {
@@ -1619,7 +1640,7 @@
             const pmid = card.dataset.pmid;
             if (!pmid) return;
             setActive(pmid, card, { lock: true });
-            abstractSidebarApi.show(pmid, { source: 'inline' });
+            abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
           card.addEventListener('keydown', event => {
@@ -1628,7 +1649,7 @@
             const pmid = card.dataset.pmid;
             if (!pmid) return;
             setActive(pmid, card, { lock: true });
-            abstractSidebarApi.show(pmid, { source: 'inline' });
+            abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
         };
@@ -1659,7 +1680,7 @@
           const isFirstClick = !isSameAsActive || !Number.isInteger(currentIndex) || currentIndex < 0;
           const card = cardMap.get(pmid);
           if (card) setActive(pmid, card, { lock: true });
-          abstractSidebarApi.show(pmid, { source: 'inline' });
+          abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
           if (isFirstClick) {
             mentionCycleIndex.set(pmid, 0);
             return;
@@ -1878,6 +1899,7 @@
         if (!popup) return;
         let hideId = null;
         let anchor = null;
+        const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
         const clearHideTimer = () => {
           if (hideId) {
             clearTimeout(hideId);
@@ -2000,6 +2022,7 @@
           adjustAbstractHeight();
         };
         const showPopup = async element => {
+          if (isMobile()) return;
           const pmid = element.getAttribute('data-pmid');
           if (!pmid) return;
           if (abstractSidebarApi.isActive && abstractSidebarApi.isActive(pmid)) return;
@@ -2043,6 +2066,7 @@
         };
         hideInlinePopup = hidePopup;
         quill.root.addEventListener('mouseover', event => {
+          if (isMobile()) return;
           const target = event.target.closest('.ql-pmid');
           if (!target) return;
           const suppressHover = abstractSidebarApi.isEnabled && abstractSidebarApi.isEnabled();
@@ -2051,6 +2075,7 @@
           showPopup(target);
         });
         quill.root.addEventListener('mouseout', event => {
+          if (isMobile()) return;
           const target = event.target.closest('.ql-pmid');
           if (!target) return;
           const related = event.relatedTarget;
@@ -2064,6 +2089,10 @@
         popup.addEventListener('mouseenter', clearHideTimer);
         popup.addEventListener('mouseleave', () => scheduleHide(200));
         document.addEventListener('pointerdown', event => {
+          if (isMobile()) {
+            hidePopup();
+            return;
+          }
           if (!popup.classList.contains('popup-open')) return;
           const target = event.target;
           if (!target) return;
@@ -2075,6 +2104,10 @@
           if (popup.classList.contains('popup-open') && anchor) placePopup(anchor.getBoundingClientRect());
         }, { passive: true });
         window.addEventListener('resize', () => {
+          if (isMobile()) {
+            hidePopup();
+            return;
+          }
           if (popup.classList.contains('popup-open') && anchor) placePopup(anchor.getBoundingClientRect());
         });
       };
