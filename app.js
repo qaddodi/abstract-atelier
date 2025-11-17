@@ -2,6 +2,7 @@
     const APP_CONFIG = {
       pubmedBaseUrl: 'https://pubmed.ncbi.nlm.nih.gov/', // Base URL for PubMed links
       eutilsBaseUrl: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&rettype=abstract&retmode=xml&id=', // NCBI EUtils API base
+      pubmedSearchUrl: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi', // PubMed search API
       fetchRetries: 3, // Number of retries for fetching metadata
       metadataQueueDelay: 360, // Delay between metadata fetches in ms
       scrollDuration: 520, // Duration for animated scrolling in ms
@@ -849,17 +850,40 @@
         const sidebar = document.getElementById('abstract-sidebar');
         const contentEl = sidebar ? $('#abstract-sidebar-content', sidebar) : null;
         const emptyEl = sidebar ? $('#abstract-sidebar-empty', sidebar) : null;
+        const searchForm = sidebar ? $('#abstract-search-form', sidebar) : null;
+        const searchInput = sidebar ? $('#abstract-search-input', sidebar) : null;
+        const searchResultsEl = sidebar ? $('#abstract-search-results', sidebar) : null;
         const closeBtn = sidebar ? $('#abstract-sidebar-close', sidebar) : null;
-        if (!sidebar || !contentEl || !emptyEl) {
+        if (!sidebar || !contentEl || !emptyEl || !searchForm || !searchInput || !searchResultsEl) {
           return abstractSidebarApi;
         }
 
         let currentPmid = null;
         let requestId = 0;
+        let viewMode = 'search';
+        const defaultEmptyMessage = emptyEl.textContent || 'Search PubMed or select a citation.';
+        const SEARCH_PAGE_SIZE = 12;
+        let searchRequestId = 0;
+        const searchState = {
+          query: '',
+          start: 0,
+          total: 0,
+          loading: false
+        };
+        let searchLoadingEl = null;
 
         const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
 
         const abstractSidebarEnabled = () => abstractPanelEnabled;
+
+        const scrollSidebarToTop = () => {
+          if (!sidebar) return;
+          if (typeof sidebar.scrollTo === 'function') {
+            sidebar.scrollTo({ top: 0, behavior: 'auto' });
+          } else {
+            sidebar.scrollTop = 0;
+          }
+        };
 
         const setOpen = open => {
           if (!abstractSidebarEnabled()) {
@@ -869,8 +893,40 @@
           document.body.classList.toggle('abstract-sidebar-open', open);
         };
 
-        const showEmpty = () => {
+        const setEmptyMessage = message => {
+          if (!emptyEl) return;
+          emptyEl.textContent = message || defaultEmptyMessage;
+        };
+
+        const updateEmptyForSearch = () => {
+          if (!emptyEl) return;
+          if (viewMode !== 'search') {
+            emptyEl.style.display = 'none';
+            return;
+          }
+          const hasResults = searchResultsEl && searchResultsEl.children.length > 0;
+          if (hasResults || searchState.loading) {
+            emptyEl.style.display = 'none';
+            return;
+          }
+          setEmptyMessage(searchState.query ? 'No PubMed results. Try another search.' : defaultEmptyMessage);
           emptyEl.style.display = 'block';
+        };
+
+        const setViewMode = mode => {
+          viewMode = mode;
+          if (contentEl) contentEl.style.display = mode === 'abstract' ? 'block' : 'none';
+          if (searchResultsEl) searchResultsEl.style.display = mode === 'search' ? 'flex' : 'none';
+          if (mode === 'abstract') {
+            hideEmpty();
+          } else {
+            updateEmptyForSearch();
+          }
+        };
+
+        const showEmpty = () => {
+          setViewMode('search');
+          updateEmptyForSearch();
           contentEl.innerHTML = '';
         };
 
@@ -879,6 +935,7 @@
         };
 
         const renderLoading = pmid => {
+          setViewMode('abstract');
           hideEmpty();
           contentEl.innerHTML = `
             <div class="flex flex-col items-center justify-center gap-3 text-gray-600 dark:text-gray-300 py-6">
@@ -892,11 +949,13 @@
         };
 
         const renderError = () => {
+          setViewMode('abstract');
           hideEmpty();
           contentEl.innerHTML = '<div class="text-center text-sm text-red-500 py-4">Unable to load abstract.</div>';
         };
 
         const renderMetadata = (pmid, metadata) => {
+          setViewMode('abstract');
           hideEmpty();
           const journalLabel = metadata?.journalAbbrev || metadata?.journalTitle || '—';
           const yearLabel = metadata?.year || '—';
@@ -944,6 +1003,7 @@
           currentPmid = pmid;
           const myRequest = ++requestId;
           setOpen(true);
+          scrollSidebarToTop();
           hideInlinePopup();
           renderLoading(pmid);
           try {
@@ -967,6 +1027,190 @@
             showEmpty();
           }
         };
+
+        const setSearchCardIndex = (card, index = 1) => {
+          if (!card) return;
+          const target = card.querySelector('.pmid-card-index');
+          if (target) target.textContent = index;
+        };
+
+        const hydrateSearchCard = (card, metadata) => {
+          if (!card || !metadata) return;
+          const pmid = metadata.pmid;
+          card.dataset.labelBase = `PMID ${pmid}`;
+          const pmidLabel = card.querySelector('.pmid-card-pmid-link');
+          const yearEl = card.querySelector('.pmid-card-year');
+          const titleEl = card.querySelector('.pmid-card-title');
+          const journalEl = card.querySelector('.pmid-card-journal');
+          const typeEl = card.querySelector('.pmid-card-type');
+          if (pmidLabel) {
+            pmidLabel.textContent = `PMID ${pmid}`;
+          }
+          if (yearEl) {
+            yearEl.textContent = metadata.year || '—';
+            yearEl.classList.remove('pmid-card-loading');
+          }
+          if (titleEl) {
+            titleEl.textContent = metadata.title || 'Citation unavailable';
+            titleEl.classList.remove('pmid-card-loading');
+          }
+          if (journalEl) {
+            journalEl.textContent = metadata.journalAbbrev || metadata.journalTitle || '—';
+            journalEl.classList.remove('pmid-card-loading');
+          }
+          if (typeEl) {
+            typeEl.textContent = metadata.typeShort || metadata.typeFull || 'Article';
+            typeEl.classList.remove('pmid-card-loading');
+          }
+        };
+
+        const buildSearchResultCard = (pmid, index) => {
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'pmid-card abstract-search-card';
+          card.dataset.pmid = pmid;
+          card.dataset.labelBase = `PMID ${pmid} search result`;
+          card.innerHTML = `
+            <span class="pmid-card-index" aria-hidden="true"></span>
+            <span class="pmid-card-count" aria-hidden="true"></span>
+            <div class="pmid-card-body">
+              <div class="pmid-card-meta">
+                <span class="pmid-card-pmid-link" title="Open on PubMed">PMID ${pmid}</span>
+                <span class="pmid-card-year pmid-card-loading">•••</span>
+              </div>
+              <div class="pmid-card-title pmid-card-loading">Fetching citation…</div>
+              <div class="pmid-card-row">
+                <div class="pmid-card-journal pmid-card-loading">Loading journal…</div>
+                <div class="pmid-card-type pmid-card-loading" aria-label="Article type">—</div>
+              </div>
+            </div>
+          `;
+          setSearchCardIndex(card, index);
+          card.addEventListener('click', () => {
+            if (!pmid) return;
+            show(pmid);
+          });
+          card.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            show(pmid);
+          });
+          fetchPmidMetadata(pmid)
+            .then(metadata => hydrateSearchCard(card, metadata))
+            .catch(() => {
+              const titleEl = card.querySelector('.pmid-card-title');
+              if (titleEl) titleEl.textContent = 'Unable to load citation.';
+            });
+          return card;
+        };
+
+        const clearSearchLoading = () => {
+          if (searchLoadingEl && searchLoadingEl.parentNode) {
+            searchLoadingEl.remove();
+          }
+          searchLoadingEl = null;
+        };
+
+        const showSearchLoading = () => {
+          if (!searchResultsEl) return;
+          if (!searchLoadingEl) {
+            searchLoadingEl = document.createElement('div');
+            searchLoadingEl.className = 'abstract-search-loading';
+            searchLoadingEl.innerHTML = `
+              <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span class="text-xs uppercase tracking-[0.2em]">Loading results</span>
+            `;
+          }
+          if (!searchLoadingEl.parentNode) {
+            searchResultsEl.appendChild(searchLoadingEl);
+          }
+        };
+
+        const searchPubmed = async ({ append = false } = {}) => {
+          const query = (searchInput.value || '').trim();
+          if (!query) {
+            searchState.query = '';
+            searchState.total = 0;
+            searchState.start = 0;
+            searchResultsEl.innerHTML = '';
+            setEmptyMessage(defaultEmptyMessage);
+            updateEmptyForSearch();
+            return;
+          }
+          if (searchState.loading) return;
+          const myRequest = ++searchRequestId;
+          const start = append ? searchState.start : 0;
+          if (!append) {
+            searchResultsEl.innerHTML = '';
+            searchState.start = 0;
+            searchState.total = 0;
+          }
+          searchState.loading = true;
+          setViewMode('search');
+          showSearchLoading();
+          try {
+            const url = `${CONFIG.pubmedSearchUrl}?db=pubmed&retmode=json&sort=relevance&retmax=${SEARCH_PAGE_SIZE}&retstart=${start}&term=${encodeURIComponent(query)}`;
+            const text = await fetchWithRetry(url);
+            const payload = JSON.parse(text);
+            if (myRequest !== searchRequestId) return;
+            const ids = (payload?.esearchresult?.idlist || []).filter(Boolean);
+            const total = Number(payload?.esearchresult?.count || 0);
+            searchState.query = query;
+            searchState.total = total;
+            const nextStart = start + ids.length;
+            searchState.start = ids.length ? nextStart : total;
+            searchState.loading = false;
+            clearSearchLoading();
+            if (!ids.length && (!append || !searchResultsEl.children.length)) {
+              updateEmptyForSearch();
+              return;
+            }
+            ids.forEach((pmid, index) => {
+              const cardIndex = start + index + 1;
+              const card = buildSearchResultCard(pmid, cardIndex);
+              searchResultsEl.appendChild(card);
+            });
+            updateEmptyForSearch();
+          } catch (error) {
+            if (myRequest !== searchRequestId) return;
+            searchState.loading = false;
+            clearSearchLoading();
+            setEmptyMessage('Unable to search PubMed right now.');
+            updateEmptyForSearch();
+          }
+        };
+
+        const maybeLoadMore = () => {
+          if (viewMode !== 'search') return;
+          if (searchState.loading) return;
+          if (!searchState.query) return;
+          const nearBottom = sidebar.scrollHeight - sidebar.scrollTop - sidebar.clientHeight < 220;
+          const hasMore = searchState.start < searchState.total;
+          if (nearBottom && hasMore) {
+            searchPubmed({ append: true });
+          }
+        };
+
+        searchForm.addEventListener('submit', event => {
+          event.preventDefault();
+          searchPubmed({ append: false });
+        });
+
+        searchInput.addEventListener('keydown', event => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            searchPubmed({ append: false });
+          }
+        });
+
+        sidebar.addEventListener('scroll', () => {
+          maybeLoadMore();
+        }, { passive: true });
+
+        setViewMode('search');
 
         if (closeBtn) {
           closeBtn.addEventListener('click', () => {
