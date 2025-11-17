@@ -539,6 +539,8 @@
             abstractSidebarApi.hide(true);
             return;
           }
+          // Ensure the abstract/search sidebar is actually opened when enabled.
+          abstractSidebarApi.openEmpty({ preserveActive: true });
         };
         setAbstractPanelEnabled(readAbstractPanelEnabled());
         apply();
@@ -1152,9 +1154,10 @@
         };
 
         const canOpenSidebar = (force = false) => {
-          if (isMobile()) return true;
           if (force) return true;
-          return !document.body.classList.contains('pmid-sidebar-collapsed');
+          if (isMobile()) return true;
+          // Allow opening on desktop even if the citations panel is collapsed.
+          return true;
         };
 
         const show = async (pmid, { source = 'inline', forceOpen = false } = {}) => {
@@ -1254,12 +1257,12 @@
           setSearchCardIndex(card, index);
           card.addEventListener('click', () => {
             if (!pmid) return;
-            show(pmid, { source: 'search' });
+            show(pmid, { source: 'search', forceOpen: true });
           });
           card.addEventListener('keydown', event => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
             event.preventDefault();
-            show(pmid, { source: 'search' });
+            show(pmid, { source: 'search', forceOpen: true });
           });
           fetchPmidMetadata(pmid)
             .then(metadata => hydrateSearchCard(card, metadata))
@@ -1302,6 +1305,8 @@
             setViewMode('search', 'search');
             return;
           }
+          // When the user searches on desktop, make sure the sidebar is opened.
+          setOpen(true);
           const query = (searchInput.value || '').trim();
           if (!query) {
             searchState.query = '';
@@ -1503,7 +1508,7 @@
           animateScrollTo(sidebar, Math.max(0, target), { isDocument: false, duration: CONFIG.scrollDuration });
         };
 
-        const setActive = (pmid, card, { lock = false } = {}) => {
+        const setActive = (pmid, card, { lock = false, scroll = true } = {}) => {
           if (lock) activeLock = pmid || null;
           if (activeLock && !lock && pmid && pmid !== activeLock) return;
           if (activePmid === pmid && activeCard === card) return;
@@ -1520,7 +1525,9 @@
           if (activePmid && activeCard) {
             toggleInlineHighlight(activePmid, true);
             activeCard.classList.add('is-hovered');
-            scrollCardIntoView(activeCard);
+            if (scroll) {
+              scrollCardIntoView(activeCard);
+            }
           }
         };
 
@@ -1629,17 +1636,13 @@
               openPubmed(card.dataset.pmid);
             });
           }
-          card.addEventListener('mouseenter', () => setActive(card.dataset.pmid, card));
-          card.addEventListener('mouseleave', () => clearActive());
-          card.addEventListener('focus', () => setActive(card.dataset.pmid, card, { lock: true }));
-          card.addEventListener('blur', () => clearActive());
           card.addEventListener('click', event => {
             const clickedPmidLink = event.target instanceof Element && event.target.closest('.pmid-card-pmid-link');
             if (clickedPmidLink) return;
             event.preventDefault();
             const pmid = card.dataset.pmid;
             if (!pmid) return;
-            setActive(pmid, card, { lock: true });
+            setActive(pmid, card, { lock: true, scroll: false });
             abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
@@ -1648,7 +1651,7 @@
             event.preventDefault();
             const pmid = card.dataset.pmid;
             if (!pmid) return;
-            setActive(pmid, card, { lock: true });
+            setActive(pmid, card, { lock: true, scroll: false });
             abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });

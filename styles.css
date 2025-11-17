@@ -177,11 +177,16 @@
       align-items: center;
       justify-content: center;
       gap: .5rem;
-      overflow: visible;
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
       white-space: nowrap;
       flex-wrap: nowrap;
       scrollbar-width: thin;
       -webkit-overflow-scrolling: touch;
+      padding-left: 12px;
+      padding-right: 12px;
+      box-sizing: border-box;
     }
     .ql-toolbar .ql-formats {
       margin: 0;
