@@ -12,6 +12,7 @@
       --toolbar-icon: #111827; /* Toolbar icon color */
       --page-margin: 5vw; /* Page margin */
       --pmid-sidebar-width: 350px; /* PMID sidebar width */
+      --sidebar-radius: 20px; /* Sidebar corner radius */
       --workspace-gap: clamp(1rem, 2vw, 1.5rem); /* Workspace gap */
       --editor-track-max: none; /* Max editor track width */
       --pmid-card-gap: 10px; /* Space on each side of PMID cards */
@@ -472,7 +473,10 @@
       flex: 0 0 var(--pmid-sidebar-width);
       margin: 0;
       padding: 22px;
-      border-radius: 20px;
+      border-radius: var(--sidebar-radius);
+      background-clip: padding-box;
+      -webkit-clip-path: inset(0 round var(--sidebar-radius));
+      clip-path: inset(0 round var(--sidebar-radius));
       border: 1px solid rgba(15,23,42,.1);
       background: rgba(246,248,252,.9);
       backdrop-filter: saturate(130%) blur(18px);
@@ -524,7 +528,10 @@
       flex: 0 0 0;
       margin: 0;
       padding: 0;
-      border-radius: 20px;
+      border-radius: var(--sidebar-radius);
+      background-clip: padding-box;
+      -webkit-clip-path: inset(0 round var(--sidebar-radius));
+      clip-path: inset(0 round var(--sidebar-radius));
       border: 1px solid rgba(15,23,42,.1);
       background: rgba(246,248,252,.9);
       backdrop-filter: saturate(130%) blur(18px);
@@ -1384,7 +1391,8 @@
         height: 45vh;
         max-height: calc(100vh - (var(--topbar-height, 0px) + 56px));
         margin: 0 auto;
-        border-radius: 16px 16px 0 0;
+        --sidebar-radius: 16px 16px 0 0;
+        border-radius: var(--sidebar-radius);
         transform: translateY(110%);
         opacity: 0;
         pointer-events: none;
