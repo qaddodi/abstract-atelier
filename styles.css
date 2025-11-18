@@ -1,22 +1,23 @@
 /* Configurable CSS Variables */
-    :root {
-      /* Quick style config: adjust these knobs first */
-      --font-body: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; /* Primary text font stack */
-      --font-heading: 'Fira Mono', monospace; /* Header monospace */
-      --primary: #007aff; /* Primary color for links and accents */
+  :root {
+    /* Quick style config: adjust these knobs first */
+    --font-body: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; /* Primary text font stack */
+    --font-heading: 'Fira Mono', monospace; /* Header monospace */
+    --primary: #007aff; /* Primary color for links and accents */
       --body-bg: #fdfcf7; /* Light background */
       --body-bg-dark: #0b1120; /* Dark background */
       --toolbar-bg: rgba(255,255,255,.65); /* Toolbar background */
       --toolbar-border: rgba(0,0,0,.06); /* Toolbar border color */
       --guide-line: rgba(15,23,42,.12); /* Guide line color */
-      --toolbar-icon: #111827; /* Toolbar icon color */
-      --page-margin: 5vw; /* Page margin */
-      --pmid-sidebar-width: 350px; /* PMID sidebar width */
-      --sidebar-radius: 20px; /* Sidebar corner radius */
-      --workspace-gap: clamp(1rem, 2vw, 1.5rem); /* Workspace gap */
-      --editor-track-max: none; /* Max editor track width */
-      --pmid-card-gap: 10px; /* Space on each side of PMID cards */
-    }
+    --toolbar-icon: #111827; /* Toolbar icon color */
+    --page-margin: 5vw; /* Page margin */
+    --pmid-sidebar-width: 350px; /* PMID sidebar width */
+    --sidebar-border-width: 1px; /* Sidebar border thickness */
+    --sidebar-radius: 20px; /* Sidebar corner radius */
+    --workspace-gap: clamp(1rem, 2vw, 1.5rem); /* Workspace gap */
+    --editor-track-max: none; /* Max editor track width */
+    --pmid-card-gap: 10px; /* Space on each side of PMID cards */
+  }
     .dark:root {
       --toolbar-bg: rgba(3,7,18,.65);
       --toolbar-border: rgba(255,255,255,.12);
@@ -468,21 +469,21 @@
       top: calc((var(--topbar-height, 0px)) + 24px);
       max-height: calc(100vh - (var(--topbar-height, 0px) + 72px));
       min-height: 220px;
-      width: var(--pmid-sidebar-width);
-      max-width: var(--pmid-sidebar-width);
-      flex: 0 0 var(--pmid-sidebar-width);
-      margin: 0;
-      padding: 22px;
-      border-radius: var(--sidebar-radius);
-      background-clip: padding-box;
-      -webkit-clip-path: inset(0 round var(--sidebar-radius));
-      clip-path: inset(0 round var(--sidebar-radius));
-      border: 1px solid rgba(15,23,42,.1);
-      background: rgba(246,248,252,.9);
-      backdrop-filter: saturate(130%) blur(18px);
-      -webkit-backdrop-filter: saturate(130%) blur(18px);
-      box-shadow: 0 18px 46px rgba(15,23,42,.14);
-      overflow-y: auto;
+    width: var(--pmid-sidebar-width);
+    max-width: var(--pmid-sidebar-width);
+    flex: 0 0 var(--pmid-sidebar-width);
+    margin: 0;
+    padding: 22px;
+    border-radius: var(--sidebar-radius);
+    background-clip: padding-box;
+    -webkit-clip-path: inset(calc(var(--sidebar-border-width) * -1) round calc(var(--sidebar-radius) + var(--sidebar-border-width)));
+    clip-path: inset(calc(var(--sidebar-border-width) * -1) round calc(var(--sidebar-radius) + var(--sidebar-border-width)));
+    border: var(--sidebar-border-width) solid rgba(15,23,42,.1);
+    background: rgba(246,248,252,.9);
+    backdrop-filter: saturate(130%) blur(18px);
+    -webkit-backdrop-filter: saturate(130%) blur(18px);
+    box-shadow: 0 18px 46px rgba(15,23,42,.14);
+    overflow-y: auto;
       overflow-x: hidden;
       transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, transform .32s ease, opacity .22s ease, width .32s ease, max-width .32s ease, flex-basis .32s ease, padding .32s ease;
     }
@@ -523,21 +524,21 @@
       max-height: calc(100vh - (var(--topbar-height, 0px) + 72px));
       height: calc(100vh - (var(--topbar-height, 0px)) - 72px);
       min-height: 220px;
-      width: 0;
-      max-width: 0;
-      flex: 0 0 0;
-      margin: 0;
-      padding: 0;
-      border-radius: var(--sidebar-radius);
-      background-clip: padding-box;
-      -webkit-clip-path: inset(0 round var(--sidebar-radius));
-      clip-path: inset(0 round var(--sidebar-radius));
-      border: 1px solid rgba(15,23,42,.1);
-      background: rgba(246,248,252,.9);
-      backdrop-filter: saturate(130%) blur(18px);
-      -webkit-backdrop-filter: saturate(130%) blur(18px);
-      box-shadow: 0 18px 46px rgba(15,23,42,.14);
-      overflow-y: auto;
+    width: 0;
+    max-width: 0;
+    flex: 0 0 0;
+    margin: 0;
+    padding: 0;
+    border-radius: var(--sidebar-radius);
+    background-clip: padding-box;
+    -webkit-clip-path: inset(calc(var(--sidebar-border-width) * -1) round calc(var(--sidebar-radius) + var(--sidebar-border-width)));
+    clip-path: inset(calc(var(--sidebar-border-width) * -1) round calc(var(--sidebar-radius) + var(--sidebar-border-width)));
+    border: var(--sidebar-border-width) solid rgba(15,23,42,.1);
+    background: rgba(246,248,252,.9);
+    backdrop-filter: saturate(130%) blur(18px);
+    -webkit-backdrop-filter: saturate(130%) blur(18px);
+    box-shadow: 0 18px 46px rgba(15,23,42,.14);
+    overflow-y: auto;
       overflow-x: hidden;
       transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, transform .32s ease, opacity .22s ease, width .32s ease, max-width .32s ease, flex-basis .32s ease, padding .32s ease;
       opacity: 0;
