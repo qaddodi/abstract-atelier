@@ -488,6 +488,10 @@
       const initSidebarToggle = sidebar => {
         const btn = $('#toggle-sidebar');
         if (!btn || !sidebar) return;
+        const openAbstractIfEnabled = () => {
+          if (!abstractPanelEnabled) return;
+          abstractSidebarApi.openEmpty({ preserveActive: true });
+        };
         const readStoredState = () => {
           try {
             return localStorage.getItem(STORAGE_KEYS.sidebar) === 'collapsed';
@@ -503,11 +507,14 @@
           if (mobile) {
             document.body.classList.remove('pmid-sidebar-collapsed');
             document.body.classList.toggle('pmid-sidebar-mobile-open', !collapsed);
+            if (!collapsed) openAbstractIfEnabled();
           } else {
             document.body.classList.remove('pmid-sidebar-mobile-open');
             document.body.classList.toggle('pmid-sidebar-collapsed', collapsed);
             if (collapsed) {
               abstractSidebarApi.hide(true);
+            } else {
+              openAbstractIfEnabled();
             }
           }
           sidebar.setAttribute('aria-hidden', collapsed ? 'true' : 'false');

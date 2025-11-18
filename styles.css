@@ -4,7 +4,7 @@
     --font-body: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; /* Primary text font stack */
     --font-heading: 'Fira Mono', monospace; /* Header monospace */
     --primary: #007aff; /* Primary color for links and accents */
-      --body-bg: #fdfcf7; /* Light background */
+      --body-bg: #f9fafb; /* Light background */
       --body-bg-dark: #0b1120; /* Dark background */
       --toolbar-bg: rgba(255,255,255,.65); /* Toolbar background */
       --toolbar-border: rgba(0,0,0,.06); /* Toolbar border color */
@@ -12,7 +12,6 @@
     --toolbar-icon: #111827; /* Toolbar icon color */
     --page-margin: 5vw; /* Page margin */
     --pmid-sidebar-width: 350px; /* PMID sidebar width */
-    --sidebar-border-width: 1px; /* Sidebar border thickness */
     --sidebar-radius: 20px; /* Sidebar corner radius */
     --workspace-gap: clamp(1rem, 2vw, 1.5rem); /* Workspace gap */
     --editor-track-max: none; /* Max editor track width */
@@ -476,21 +475,20 @@
     padding: 22px;
     border-radius: var(--sidebar-radius);
     background-clip: padding-box;
-    -webkit-clip-path: inset(calc(var(--sidebar-border-width) * -1) round calc(var(--sidebar-radius) + var(--sidebar-border-width)));
-    clip-path: inset(calc(var(--sidebar-border-width) * -1) round calc(var(--sidebar-radius) + var(--sidebar-border-width)));
-    border: var(--sidebar-border-width) solid rgba(15,23,42,.1);
-    background: rgba(246,248,252,.9);
+    -webkit-clip-path: inset(0 round var(--sidebar-radius));
+    clip-path: inset(0 round var(--sidebar-radius));
+    border: none;
+    background: var(--body-bg);
+    border: 1px solid rgba(15,23,42,.1);
     backdrop-filter: saturate(130%) blur(18px);
     -webkit-backdrop-filter: saturate(130%) blur(18px);
-    box-shadow: 0 18px 46px rgba(15,23,42,.14);
     overflow-y: auto;
       overflow-x: hidden;
       transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, transform .32s ease, opacity .22s ease, width .32s ease, max-width .32s ease, flex-basis .32s ease, padding .32s ease;
     }
     .dark #pmid-sidebar {
-      border-color: rgba(148,163,184,.22);
-      background: rgba(15,23,42,.68);
-      box-shadow: 0 24px 60px rgba(0,0,0,.55);
+      background: #0d172b;
+      border-color: rgba(255,255,255,.14);
     }
     #pmid-sidebar {
       scrollbar-gutter: stable both-edges;
@@ -531,13 +529,13 @@
     padding: 0;
     border-radius: var(--sidebar-radius);
     background-clip: padding-box;
-    -webkit-clip-path: inset(calc(var(--sidebar-border-width) * -1) round calc(var(--sidebar-radius) + var(--sidebar-border-width)));
-    clip-path: inset(calc(var(--sidebar-border-width) * -1) round calc(var(--sidebar-radius) + var(--sidebar-border-width)));
-    border: var(--sidebar-border-width) solid rgba(15,23,42,.1);
-    background: rgba(246,248,252,.9);
+    -webkit-clip-path: inset(0 round var(--sidebar-radius));
+    clip-path: inset(0 round var(--sidebar-radius));
+    border: none;
+    background: var(--body-bg);
+    border: 1px solid rgba(15,23,42,.1);
     backdrop-filter: saturate(130%) blur(18px);
     -webkit-backdrop-filter: saturate(130%) blur(18px);
-    box-shadow: 0 18px 46px rgba(15,23,42,.14);
     overflow-y: auto;
       overflow-x: hidden;
       transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease, transform .32s ease, opacity .22s ease, width .32s ease, max-width .32s ease, flex-basis .32s ease, padding .32s ease;
@@ -556,9 +554,8 @@
       pointer-events: auto;
     }
     .dark #abstract-sidebar {
-      border-color: rgba(148,163,184,.22);
-      background: rgba(15,23,42,.68);
-      box-shadow: 0 24px 60px rgba(0,0,0,.55);
+      background: #0d172b;
+      border-color: rgba(255,255,255,.14);
     }
     .abstract-transition {
       opacity: 0;
@@ -704,8 +701,8 @@
       width: 100%;
       box-sizing: border-box;
       border-radius: 12px;
-      border: 1px solid rgba(15,23,42,.12);
-      background: var(--toolbar-bg);
+      border: 1px solid rgba(15,23,42,.16);
+      background: #f0f3fb;
       backdrop-filter: saturate(130%) blur(14px);
       -webkit-backdrop-filter: saturate(130%) blur(14px);
       box-shadow: none;
@@ -732,10 +729,10 @@
       background: transparent;
       outline: none;
       font-size: 14px;
-      color: inherit;
+      color: #0f172a;
     }
     #abstract-search-input::placeholder {
-      color: #94a3b8;
+      color: #6b7280;
     }
     .dark #abstract-search-input::placeholder {
       color: #cbd5e1;
