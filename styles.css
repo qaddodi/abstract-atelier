@@ -193,7 +193,7 @@ body {
 #statusbar:focus-within .stat-label {
   opacity: .75;
   transform: translateY(0);
-  max-width: 40px;
+  max-width: 60px;
   margin-left: 4px;
 }
 
