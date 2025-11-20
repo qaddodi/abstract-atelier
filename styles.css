@@ -1178,6 +1178,55 @@ body.abstract-sidebar-open #abstract-sidebar {
   z-index: 10;
 }
 
+.pmid-card-mention-map {
+  position: relative;
+  margin-top: 6px;
+  height: 12px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(15, 23, 42, .08), rgba(15, 23, 42, .04));
+  overflow: hidden;
+}
+
+.dark .pmid-card-mention-map {
+  background: linear-gradient(90deg, rgba(148, 163, 184, .25), rgba(148, 163, 184, .16));
+}
+
+.pmid-card-mention-map-empty {
+  opacity: .4;
+}
+
+.pmid-card-mention-dot {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  border: 2px solid #f8fafc;
+  background: #dc2626;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, .25);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.pmid-card-mention-dot:focus-visible,
+.pmid-card-mention-dot:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 4px 10px rgba(220, 38, 38, .35);
+  outline: none;
+}
+
+.dark .pmid-card-mention-dot {
+  border-color: #0b1222;
+  background: #fca5a5;
+  box-shadow: 0 2px 6px rgba(248, 113, 113, .25);
+}
+
+.dark .pmid-card-mention-dot:focus-visible,
+.dark .pmid-card-mention-dot:hover {
+  box-shadow: 0 4px 10px rgba(248, 113, 113, .35);
+}
+
 .pmid-card:hover .pmid-card-layer,
 .pmid-card.is-hovered .pmid-card-layer,
 .pmid-card:focus-visible .pmid-card-layer {

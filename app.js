@@ -1507,6 +1507,58 @@
           if (card.dataset.labelBase) formatAriaLabel(card, card.dataset.labelBase);
         };
 
+        const computeMentionOffsets = pmid => {
+          if (!pmid) return [];
+          const nodes = Array.from(quill.root.querySelectorAll(`.ql-pmid[data-pmid="${pmid}"]`));
+          if (!nodes.length) return [];
+          let scroller = quill.scrollingContainer || quill.root.parentElement || document.documentElement;
+          const docEl = document.documentElement;
+          const body = document.body;
+          let scrollerRect = { top: 0 };
+          try {
+            scrollerRect = scroller.getBoundingClientRect ? scroller.getBoundingClientRect() : { top: 0 };
+          } catch (_) {}
+          const scrollTop = (scroller === docEl || scroller === body)
+            ? (window.scrollY ?? window.pageYOffset ?? docEl.scrollTop ?? body?.scrollTop ?? 0)
+            : (scroller.scrollTop || 0);
+          const contentHeight = Math.max(1, scroller.scrollHeight || docEl.scrollHeight || body?.scrollHeight || 1);
+          return nodes.map(node => {
+            const rect = node.getBoundingClientRect ? node.getBoundingClientRect() : null;
+            const top = rect ? (rect.top - scrollerRect.top) + scrollTop : (node.offsetTop || 0);
+            const ratio = Math.min(1, Math.max(0, top / contentHeight));
+            return ratio;
+          });
+        };
+
+        const renderMentionMap = (card, pmid) => {
+          if (!card) return;
+          const map = card.querySelector('.pmid-card-mention-map');
+          if (!map) return;
+          const offsets = computeMentionOffsets(pmid);
+          map.innerHTML = '';
+          if (!offsets.length) {
+            map.classList.add('pmid-card-mention-map-empty');
+            return;
+          }
+          map.classList.remove('pmid-card-mention-map-empty');
+          offsets.forEach((offset, idx) => {
+            const dot = document.createElement('button');
+            dot.type = 'button';
+            dot.className = 'pmid-card-mention-dot';
+            const clamped = Math.max(2, Math.min(98, (offset || 0) * 100));
+            dot.style.left = `${clamped}%`;
+            dot.title = `Jump to mention ${idx + 1}`;
+            dot.setAttribute('aria-label', `Jump to mention ${idx + 1}`);
+            dot.addEventListener('click', event => {
+              event.preventDefault();
+              setActive(pmid, card, { lock: true, scroll: false });
+              abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
+              scrollInlineIntoView(pmid, { targetIndex: idx, duration: CONFIG.scrollDuration });
+            });
+            map.appendChild(dot);
+          });
+        };
+
         const toggleInlineHighlight = (pmid, active) => {
           if (!pmid) return;
           document.querySelectorAll(`.ql-pmid[data-pmid="${pmid}"]`).forEach(node => {
@@ -1566,13 +1618,15 @@
 
         const scrollInlineIntoView = (pmid, options = {}) => {
           if (!pmid) return;
-          const { cycle = false, duration = CONFIG.scrollDuration, easing = easeOutCubic } = options;
+          const { cycle = false, duration = CONFIG.scrollDuration, easing = easeOutCubic, targetIndex = null } = options;
           const mentions = Array.from(quill.root.querySelectorAll(`.ql-pmid[data-pmid="${pmid}"]`));
           if (!mentions.length) return;
 
           let index = mentionCycleIndex.get(pmid);
           if (!Number.isInteger(index)) index = -1;
-          if (cycle) {
+          if (Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < mentions.length) {
+            index = targetIndex;
+          } else if (cycle) {
             index = (index + 1) % mentions.length;
           } else if (index < 0 || index >= mentions.length) {
             index = 0;
@@ -1747,6 +1801,7 @@
                 <div class="pmid-card-journal pmid-card-loading">Loading journal…</div>
                 <div class="pmid-card-type pmid-card-loading" aria-label="Article type">—</div>
               </div>
+              <div class="pmid-card-mention-map" role="group" aria-label="Jump to a specific mention"></div>
             </div>
           `;
           setCardStack(card, 1);
@@ -1855,14 +1910,15 @@
                 .then(metadata => applyMetadata(card, metadata))
                 .catch(() => applyError(card));
             }
-            const card = cardMap.get(pmid);
-            if (card) {
-              setCardIndex(card, index + 1);
-              const mentions = mentionsMap.get(pmid) || 1;
-              setCardStack(card, mentions);
-              listEl.appendChild(card);
-            }
-          });
+              const card = cardMap.get(pmid);
+              if (card) {
+                setCardIndex(card, index + 1);
+                const mentions = mentionsMap.get(pmid) || 1;
+                setCardStack(card, mentions);
+                listEl.appendChild(card);
+                renderMentionMap(card, pmid);
+              }
+            });
 
           remaining.forEach(pmid => {
             const card = cardMap.get(pmid);
