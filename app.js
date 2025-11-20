@@ -2086,14 +2086,18 @@
           let left = rect.left + rect.width / 2 - width / 2;
           left = Math.max(pad, Math.min(left, vw - width - pad));
           const topSafety = topbarBottom + pad;
+          // If the anchor has scrolled above the toolbar threshold, hide the popup.
+          if (rect.bottom <= topSafety) return hidePopup();
           const bottomLimit = vh - pad;
+          // Likewise, if the anchor scrolls below the lower safety margin, hide the popup.
+          if (rect.top >= bottomLimit) return hidePopup();
           const maxHeightLimit = Math.min(CONFIG.popupMaxWidth, Math.max(0, bottomLimit - topSafety));
           const spaceBelow = Math.max(0, bottomLimit - (rect.bottom + pad));
           const spaceAbove = Math.max(0, (rect.top - pad) - topSafety);
           const order = spaceBelow >= spaceAbove ? ['below', 'above'] : ['above', 'below'];
           const attempt = direction => {
             if (direction === 'below') {
-              const topCandidate = rect.bottom + pad;
+              const topCandidate = Math.max(topSafety, rect.bottom + pad);
               const available = bottomLimit - topCandidate;
               if (available <= 0) return null;
               const limit = maxHeightLimit > 0 ? maxHeightLimit : available;
