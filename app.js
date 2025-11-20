@@ -82,29 +82,49 @@
         abstractPanel: 'abstract-atelier:abstract-panel'
       };
 
-      // Shared state holders
-      let abstractSidebarApi = {
-        show: () => {},
-        hide: () => {},
-        openEmpty: () => {},
-        isActive: () => false,
-        isEnabled: () => true,
-        getActive: () => null
+      // Media helpers
+      const MEDIA_QUERIES = {
+        mobile: '(max-width: 767px)'
       };
-      let hideInlinePopup = () => {};
-      let forceClearActive = () => {};
-      let abstractPanelEnabled = true;
-      let lastHighlightedPmid = null;
+      const media = {
+        mobile: typeof window !== 'undefined' && window.matchMedia ? window.matchMedia(MEDIA_QUERIES.mobile) : { matches: false }
+      };
+      const isMobile = () => !!(media.mobile && media.mobile.matches);
+      const onMobileChange = handler => {
+        if (!media.mobile || !handler) return;
+        if (typeof media.mobile.addEventListener === 'function') {
+          media.mobile.addEventListener('change', handler);
+        } else if (typeof media.mobile.addListener === 'function') {
+          media.mobile.addListener(handler);
+        }
+      };
 
+      // Shared state holders
+      const state = {
+        abstractSidebarApi: {
+          show: () => {},
+          hide: () => {},
+          openEmpty: () => {},
+          isActive: () => false,
+          isEnabled: () => true,
+          getActive: () => null
+        },
+        hideInlinePopup: () => {},
+        forceClearActive: () => {},
+        abstractPanelEnabled: true,
+        lastHighlightedPmid: null
+      };
+
+      // Layout helpers
       const isPmidSidebarOpen = () => {
         return document.body.classList.contains('pmid-sidebar-mobile-open')
           || !document.body.classList.contains('pmid-sidebar-collapsed');
       };
 
       const keepAbstractAlignedWithPmid = ({ preserveActive = true } = {}) => {
-        if (!abstractPanelEnabled) return;
+        if (!state.abstractPanelEnabled) return;
         if (isPmidSidebarOpen()) {
-          abstractSidebarApi.openEmpty({ preserveActive });
+          state.abstractSidebarApi.openEmpty({ preserveActive });
         }
       };
 
@@ -116,19 +136,19 @@
         }
       };
       const setAbstractPanelEnabled = value => {
-        abstractPanelEnabled = !!value;
-        document.body.classList.toggle('abstract-sidebar-disabled', !abstractPanelEnabled);
+        state.abstractPanelEnabled = !!value;
+        document.body.classList.toggle('abstract-sidebar-disabled', !state.abstractPanelEnabled);
         try {
-          localStorage.setItem(STORAGE_KEYS.abstractPanel, abstractPanelEnabled ? 'on' : 'off');
+          localStorage.setItem(STORAGE_KEYS.abstractPanel, state.abstractPanelEnabled ? 'on' : 'off');
         } catch (_) {}
       };
       const syncAbstractToggleButton = () => {
         const btn = $('#toggle-abstract');
         if (!btn) return;
-        btn.classList.toggle('ql-active', abstractPanelEnabled);
-        btn.setAttribute('aria-pressed', abstractPanelEnabled ? 'true' : 'false');
-        btn.setAttribute('aria-label', abstractPanelEnabled ? 'Disable abstract panel' : 'Enable abstract panel');
-        btn.title = abstractPanelEnabled ? 'Disable abstract panel' : 'Enable abstract panel';
+        btn.classList.toggle('ql-active', state.abstractPanelEnabled);
+        btn.setAttribute('aria-pressed', state.abstractPanelEnabled ? 'true' : 'false');
+        btn.setAttribute('aria-label', state.abstractPanelEnabled ? 'Disable abstract panel' : 'Enable abstract panel');
+        btn.title = state.abstractPanelEnabled ? 'Disable abstract panel' : 'Enable abstract panel';
       };
 
       // Utilities
@@ -508,8 +528,6 @@
           }
         };
         let collapsed = readStoredState();
-        const mq = window.matchMedia('(max-width: 767px)');
-        const isMobile = () => mq.matches;
         const render = () => {
           const mobile = isMobile();
           if (mobile) {
@@ -520,7 +538,7 @@
             document.body.classList.remove('pmid-sidebar-mobile-open');
             document.body.classList.toggle('pmid-sidebar-collapsed', collapsed);
             if (collapsed) {
-              abstractSidebarApi.hide(true);
+              state.abstractSidebarApi.hide(true);
             } else {
               keepAbstractAlignedWithPmid({ preserveActive: true });
             }
@@ -538,29 +556,27 @@
             localStorage.setItem(STORAGE_KEYS.sidebar, collapsed ? 'collapsed' : 'expanded');
           } catch (_) {}
         });
-        const handleMedia = () => {
-          render();
-        };
-        mq.addEventListener ? mq.addEventListener('change', handleMedia) : mq.addListener(handleMedia);
+        const handleMedia = () => render();
+        onMobileChange(handleMedia);
       };
 
       const initAbstractPanelToggle = () => {
         const btn = $('#toggle-abstract');
         if (!btn) return;
         const apply = () => {
-          document.body.classList.toggle('abstract-sidebar-disabled', !abstractPanelEnabled);
+          document.body.classList.toggle('abstract-sidebar-disabled', !state.abstractPanelEnabled);
           syncAbstractToggleButton();
-          if (!abstractPanelEnabled) {
-            abstractSidebarApi.hide(true);
+          if (!state.abstractPanelEnabled) {
+            state.abstractSidebarApi.hide(true);
             return;
           }
           // Ensure the abstract/search sidebar is actually opened when enabled.
-          abstractSidebarApi.openEmpty({ preserveActive: true });
+          state.abstractSidebarApi.openEmpty({ preserveActive: true });
         };
         setAbstractPanelEnabled(readAbstractPanelEnabled());
         apply();
         btn.addEventListener('click', () => {
-          setAbstractPanelEnabled(!abstractPanelEnabled);
+          setAbstractPanelEnabled(!state.abstractPanelEnabled);
           apply();
         });
       };
@@ -861,7 +877,7 @@
         const backToResultsBtn = sidebar ? $('#abstract-back-to-results', sidebar) : null;
         const closeBtn = sidebar ? $('#abstract-sidebar-close', sidebar) : null;
         if (!sidebar || !contentEl || !emptyEl || !searchForm || !searchInput || !searchResultsEl) {
-          return abstractSidebarApi;
+          return state.abstractSidebarApi;
         }
 
         let currentPmid = null;
@@ -879,9 +895,7 @@
         };
         let searchLoadingEl = null;
 
-        const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
-
-        const abstractSidebarEnabled = () => abstractPanelEnabled;
+        const abstractSidebarEnabled = () => state.abstractPanelEnabled;
 
         const searchAllowed = () => !isMobile();
 
@@ -1185,7 +1199,7 @@
           const myRequest = ++requestId;
           setOpen(true);
           scrollSidebarToTop();
-          hideInlinePopup();
+          state.hideInlinePopup();
           renderLoading(pmid);
           try {
             const metadata = await fetchPmidMetadata(pmid);
@@ -1421,17 +1435,14 @@
         }, { passive: true });
 
         setViewMode('search');
-        const mobileMatcher = window.matchMedia('(max-width: 767px)');
-        const handleMobileChange = () => {
-          applySearchAvailability();
-        };
-        mobileMatcher.addEventListener ? mobileMatcher.addEventListener('change', handleMobileChange) : mobileMatcher.addListener(handleMobileChange);
+        const handleMobileChange = () => applySearchAvailability();
+        onMobileChange(handleMobileChange);
         applySearchAvailability();
 
         if (closeBtn) {
           closeBtn.addEventListener('click', () => {
             hide(true);
-            forceClearActive();
+            state.forceClearActive();
             quill?.focus?.();
           });
         }
@@ -1552,7 +1563,7 @@
             dot.addEventListener('click', event => {
               event.preventDefault();
               setActive(pmid, card, { lock: true, scroll: false });
-              abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
+              state.abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
               scrollInlineIntoView(pmid, { targetIndex: idx, duration: CONFIG.scrollDuration });
             });
             map.appendChild(dot);
@@ -1585,7 +1596,7 @@
           activePmid = pmid || null;
           activeCard = card || null;
           if (!pmid) activeLock = null;
-          lastHighlightedPmid = activePmid;
+          state.lastHighlightedPmid = activePmid;
           if (activePmid && previousPmid !== activePmid) {
             mentionCycleIndex.set(activePmid, -1);
           }
@@ -1604,17 +1615,17 @@
           setActive(null, null);
           if (force) {
             if (hideAbstract) {
-              abstractSidebarApi.hide(true);
+              state.abstractSidebarApi.hide(true);
             } else {
               const abstractIsOpen = document.body.classList.contains('abstract-sidebar-open');
               if (abstractIsOpen || !keepClosed) {
-                abstractSidebarApi.openEmpty({ preserveActive: false });
+                state.abstractSidebarApi.openEmpty({ preserveActive: false });
               }
             }
-            hideInlinePopup();
+            state.hideInlinePopup();
           }
         };
-        forceClearActive = () => clearActive(true);
+        state.forceClearActive = () => clearActive(true);
 
         const scrollInlineIntoView = (pmid, options = {}) => {
           if (!pmid) return;
@@ -1671,7 +1682,7 @@
 
           const targetHeight = targetRect.height || target.offsetHeight || 0;
           const sidebar = document.getElementById('pmid-sidebar');
-          const isMobileSidebarOpen = document.body.classList.contains('pmid-sidebar-mobile-open') && window.matchMedia('(max-width: 767px)').matches;
+          const isMobileSidebarOpen = document.body.classList.contains('pmid-sidebar-mobile-open') && isMobile();
           const reservedHeight = (isDocument && isMobileSidebarOpen && sidebar)
             ? Math.min(viewportHeight * 0.6, Math.max(sidebar.getBoundingClientRect()?.height || 0, viewportHeight * 0.4))
             : 0;
@@ -1712,7 +1723,7 @@
             const pmid = card.dataset.pmid;
             if (!pmid) return;
             setActive(pmid, card, { lock: true, scroll: false });
-            abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
+            state.abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
           card.addEventListener('keydown', event => {
@@ -1721,7 +1732,7 @@
             const pmid = card.dataset.pmid;
             if (!pmid) return;
             setActive(pmid, card, { lock: true, scroll: false });
-            abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
+            state.abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
             scrollInlineIntoView(pmid, { cycle: true, duration: CONFIG.scrollDuration });
           });
         };
@@ -1733,9 +1744,9 @@
           const hasExpandedSelection = selection && selection.rangeCount && !selection.getRangeAt(0).collapsed;
           if (!token) {
             if (!hasExpandedSelection && activePmid) {
-              const isMobile = window.matchMedia('(max-width: 767px)').matches;
-              clearActive(true, { hideAbstract: isMobile, keepClosed: true });
-              if (isMobile) abstractSidebarApi.hide(true);
+              const mobile = isMobile();
+              clearActive(true, { hideAbstract: mobile, keepClosed: true });
+              if (mobile) state.abstractSidebarApi.hide(true);
             }
             return;
           }
@@ -1752,7 +1763,7 @@
           const isFirstClick = !isSameAsActive || !Number.isInteger(currentIndex) || currentIndex < 0;
           const card = cardMap.get(pmid);
           if (card) setActive(pmid, card, { lock: true });
-          abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
+          state.abstractSidebarApi.show(pmid, { source: 'inline', forceOpen: true });
           if (isFirstClick) {
             mentionCycleIndex.set(pmid, 0);
             return;
@@ -1764,7 +1775,7 @@
           const target = event.target;
           if (!(target instanceof Element)) return;
           if (document.body.classList.contains('abstract-from-search')) {
-            hideInlinePopup();
+            state.hideInlinePopup();
             return;
           }
           const insideSidebar = target.closest('#pmid-sidebar');
@@ -1773,12 +1784,12 @@
           const toggleBtn = target.closest('#toggle-sidebar');
           const toggleAbstractBtn = target.closest('#toggle-abstract');
           if (insideSidebar || insideAbstractSidebar || inlinePmid || toggleBtn || toggleAbstractBtn) return;
-          const isMobile = window.matchMedia('(max-width: 767px)').matches;
-          clearActive(true, { hideAbstract: isMobile, keepClosed: true });
-          if (isMobile) {
-            abstractSidebarApi.hide(true);
+          const mobile = isMobile();
+          clearActive(true, { hideAbstract: mobile, keepClosed: true });
+          if (mobile) {
+            state.abstractSidebarApi.hide(true);
           }
-          hideInlinePopup();
+          state.hideInlinePopup();
         });
 
         const buildCard = pmid => {
@@ -1886,12 +1897,12 @@
 
           if (!pmids.length) {
             clearActive(true, { hideAbstract: false });
-            if (isPmidSidebarOpen() && abstractPanelEnabled) {
+            if (isPmidSidebarOpen() && state.abstractPanelEnabled) {
               keepAbstractAlignedWithPmid({ preserveActive: false });
             } else {
-              abstractSidebarApi.hide(true);
+              state.abstractSidebarApi.hide(true);
             }
-            hideInlinePopup();
+            state.hideInlinePopup();
             cardMap.forEach(card => {
               if (card.parentElement === listEl) listEl.removeChild(card);
             });
@@ -1929,10 +1940,10 @@
 
           if (activePmid && !cardMap.has(activePmid)) {
             clearActive(true, { hideAbstract: false });
-            if (isPmidSidebarOpen() && abstractPanelEnabled) {
+            if (isPmidSidebarOpen() && state.abstractPanelEnabled) {
               keepAbstractAlignedWithPmid({ preserveActive: false });
             } else {
-              abstractSidebarApi.hide(true);
+              state.abstractSidebarApi.hide(true);
             }
           }
         }, CONFIG.sidebarUpdateDebounce);
@@ -1981,7 +1992,6 @@
         if (!popup) return;
         let hideId = null;
         let anchor = null;
-        const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
         const clearHideTimer = () => {
           if (hideId) {
             clearTimeout(hideId);
@@ -2107,7 +2117,7 @@
           if (isMobile()) return;
           const pmid = element.getAttribute('data-pmid');
           if (!pmid) return;
-          if (abstractSidebarApi.isActive && abstractSidebarApi.isActive(pmid)) return;
+          if (state.abstractSidebarApi.isActive && state.abstractSidebarApi.isActive(pmid)) return;
           anchor = element;
           clearHideTimer();
           popup.classList.add('popup-open');
@@ -2146,13 +2156,13 @@
           popup.dataset.maxHeight = '0';
           anchor = null;
         };
-        hideInlinePopup = hidePopup;
+        state.hideInlinePopup = hidePopup;
         quill.root.addEventListener('mouseover', event => {
           if (isMobile()) return;
           const target = event.target.closest('.ql-pmid');
           if (!target) return;
-          const suppressHover = abstractSidebarApi.isEnabled && abstractSidebarApi.isEnabled();
-          if (suppressHover && abstractSidebarApi.isActive && abstractSidebarApi.isActive(target.getAttribute('data-pmid'))) return;
+          const suppressHover = state.abstractSidebarApi.isEnabled && state.abstractSidebarApi.isEnabled();
+          if (suppressHover && state.abstractSidebarApi.isActive && state.abstractSidebarApi.isActive(target.getAttribute('data-pmid'))) return;
           clearHideTimer();
           showPopup(target);
         });
@@ -2206,7 +2216,7 @@
         const { ensureCaretBelowTop, topbarEl } = initLayout(quill);
         initStatsAndHighlighting(quill, ensureCaretBelowTop);
         setAbstractPanelEnabled(readAbstractPanelEnabled());
-        abstractSidebarApi = initAbstractSidebar(quill);
+        state.abstractSidebarApi = initAbstractSidebar(quill);
         initPmidSidebar(quill);
         const sidebarEl = document.getElementById('pmid-sidebar');
         initSidebarToggle(sidebarEl);
