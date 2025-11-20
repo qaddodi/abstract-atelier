@@ -56,7 +56,7 @@ import { createSidebars } from './modules/sidebars.js';
         initSidebarToggle(sidebarEl);
         initAbstractPanelToggle();
         initPersistence(quill);
-        initPopup(quill, topbarEl);
+        initPopup(quill, topbarEl, state);
       };
 
       if (document.readyState === 'loading') {
