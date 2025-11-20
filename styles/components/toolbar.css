@@ -1,0 +1,285 @@
+/* Toolbar translucent with shadows */
+#topbar {
+  backdrop-filter: saturate(130%) blur(14px);
+  -webkit-backdrop-filter: saturate(130%) blur(14px);
+  background: var(--toolbar-bg);
+  border-color: var(--toolbar-border);
+  box-shadow: none;
+}
+
+/* FLOATING STATUSBAR PILL */
+#statusbar {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px var(--pill-pad, 16px);
+  border-radius: 9999px;
+  border: 1px solid var(--toolbar-border);
+  backdrop-filter: saturate(120%) blur(12px);
+  -webkit-backdrop-filter: saturate(120%) blur(12px);
+  background: var(--toolbar-bg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .18), 0 2px 6px rgba(0, 0, 0, .12);
+  flex-wrap: nowrap;
+  transition: padding .25s ease;
+}
+
+#statusbar:hover,
+#statusbar:focus-within {
+  padding: 10px var(--pill-pad-expanded, calc(var(--pill-pad, 16px) + 12px));
+}
+
+.dark #statusbar {
+  box-shadow: 0 14px 36px rgba(0, 0, 0, .5), 0 2px 8px rgba(0, 0, 0, .45);
+}
+
+#statusbar span {
+  white-space: nowrap;
+}
+
+#statusbar .stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+#statusbar .stat svg {
+  flex-shrink: 0;
+}
+
+#statusbar .stat {
+  position: relative;
+}
+
+#statusbar .stat-label {
+  opacity: 0;
+  font-size: 14px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: inherit;
+  max-width: 0;
+  overflow: hidden;
+  margin-left: 0;
+  transition: opacity .22s ease, transform .22s ease, max-width .22s ease, margin-left .22s ease;
+  transform: translateY(4px);
+}
+
+#statusbar:hover .stat-label,
+#statusbar:focus-within .stat-label {
+  opacity: .75;
+  transform: translateY(0);
+  max-width: 60px;
+  margin-left: 4px;
+}
+
+#statusbar .stat-total {
+  font-weight: 600;
+}
+
+/* Quill toolbar visuals */
+#toolbar {
+  position: relative;
+}
+
+/* Quill will add .ql-toolbar automatically to #toolbar after initialization */
+.ql-toolbar.ql-snow {
+  box-shadow: none;
+  border-radius: 9999px;
+}
+
+.ql-toolbar {
+  border: 0 !important;
+  background: transparent !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  flex-wrap: nowrap;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  padding-left: 12px;
+  padding-right: 12px;
+  box-sizing: border-box;
+}
+
+.ql-toolbar .ql-formats {
+  margin: 0;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.ql-toolbar button,
+.ql-toolbar .ql-picker {
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.ql-toolbar .ql-picker-label,
+.ql-toolbar button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ql-toolbar .ql-stroke {
+  stroke: var(--toolbar-icon);
+}
+
+.ql-toolbar .ql-fill {
+  fill: var(--toolbar-icon);
+}
+
+/* Keep icon strokes consistent when zooming the page */
+#toolbar svg,
+#statusbar svg,
+.pmid-card svg {
+  stroke-width: 1.6 !important;
+  vector-effect: non-scaling-stroke;
+}
+
+#toolbar svg path,
+#toolbar svg circle,
+#toolbar svg line,
+#toolbar svg polyline,
+#toolbar svg polygon,
+#toolbar svg rect,
+#statusbar svg path,
+#statusbar svg circle,
+#statusbar svg line,
+#statusbar svg polyline,
+#statusbar svg polygon,
+#statusbar svg rect,
+.pmid-card svg path,
+.pmid-card svg circle,
+.pmid-card svg line,
+.pmid-card svg polyline,
+.pmid-card svg polygon,
+.pmid-card svg rect {
+  vector-effect: non-scaling-stroke;
+}
+
+.ql-custom-btn {
+  border: none;
+  border-radius: 3px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  color: var(--toolbar-icon);
+  background: transparent;
+  position: relative;
+}
+
+.ql-custom-btn svg {
+  pointer-events: none;
+}
+
+.ql-custom-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%) translateY(-4px);
+  padding: 6px 8px;
+  background: rgba(15, 23, 42, .9);
+  color: #f8fafc;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .24);
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 10000;
+}
+
+.dark .ql-custom-btn[data-tooltip]::after {
+  background: rgba(15, 23, 42, .94);
+  color: #e5e7eb;
+}
+
+.ql-custom-btn[data-tooltip]:hover::after,
+.ql-custom-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+#toggle-abstract svg {
+  stroke: currentColor;
+}
+
+.ql-custom-btn:hover:not(.ql-active),
+.ql-custom-btn:focus-visible:not(.ql-active) {
+  color: var(--toolbar-hover);
+  /* brighter sky blue on hover/focus */
+  outline: none;
+}
+
+.ql-custom-btn.ql-active {
+  color: var(--toolbar-active);
+  /* deep blue when active */
+}
+
+.toolbar-formatting {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: nowrap;
+}
+
+.toolbar-readonly-banner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-weight: 900;
+  letter-spacing: .2em;
+  font-size: .84rem;
+  text-transform: uppercase;
+  color: #0b1222;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .25s ease, transform .25s ease;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 1), 0 0 32px rgba(255, 255, 255, 1), 0 0 48px rgba(255, 255, 255, .95), 0 2px 12px rgba(0, 0, 0, .4);
+}
+
+.dark .toolbar-readonly-banner {
+  color: #cbd5e1;
+  text-shadow: 0 0 14px rgba(59, 130, 246, .65), 0 0 26px rgba(59, 130, 246, .55), 0 0 38px rgba(37, 99, 235, .45), 0 2px 12px rgba(0, 0, 0, .7);
+}
+
+.view-only-mode #toolbar .toolbar-formatting .ql-formats button,
+.view-only-mode #toolbar .toolbar-formatting .ql-formats .ql-picker {
+  opacity: .32;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.view-only-mode #toolbar .toolbar-formatting .toolbar-readonly-banner {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .ql-toolbar {
+    justify-content: flex-start;
+  }
+}

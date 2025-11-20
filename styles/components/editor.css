@@ -1,0 +1,130 @@
+/* Editor host and infinite look */
+#editor-card {
+  position: relative;
+  width: 100%;
+  max-width: var(--editor-track-max);
+  margin-left: auto;
+  margin-right: auto;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent;
+  overflow: clip;
+}
+
+#editor-card::before,
+#editor-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent 0%, var(--guide-line) 14%, var(--guide-line) 86%, transparent 100%);
+  opacity: .6;
+}
+
+#editor-card::before {
+  left: 0;
+}
+
+#editor-card::after {
+  right: 0;
+}
+
+#editor-shell {
+  min-height: 0;
+}
+
+/* Popup - translucent glass */
+#popup {
+  position: fixed;
+  max-width: 640px;
+  width: 92vw;
+  background: rgba(255, 255, 255, .78);
+  border: 1px solid rgba(0, 0, 0, .06);
+  border-radius: 14px;
+  backdrop-filter: saturate(120%) blur(10px);
+  -webkit-backdrop-filter: saturate(120%) blur(10px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .25);
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(4px) scale(.995);
+  transition: opacity .12s ease, transform .12s ease, visibility 0s linear .12s;
+}
+
+#popup.popup-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+  transition: opacity .12s ease, transform .12s ease, visibility 0s;
+}
+
+.dark #popup {
+  background: rgba(2, 6, 23, .78);
+  border-color: rgba(255, 255, 255, .12);
+  color: #e5e7eb;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .5);
+}
+
+#popup .ql-pmid {
+  text-decoration: none;
+}
+
+#popup .ql-pmid:hover {
+  text-decoration: none;
+}
+
+#popup .abstract-box {
+  border: 1px solid var(--toolbar-border);
+  background: rgba(255, 255, 255, .55);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.dark #popup .abstract-box {
+  border-color: var(--toolbar-border);
+  background: rgba(15, 23, 42, .45);
+}
+
+.nice-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, .45) transparent;
+}
+
+.nice-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.nice-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 10px 0;
+}
+
+.nice-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, .45);
+  border-radius: 9999px;
+  border: 1px solid transparent;
+}
+
+.nice-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, .65);
+}
+
+.dark .nice-scroll {
+  scrollbar-color: rgba(209, 213, 219, .55) transparent;
+}
+
+.dark .nice-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(203, 213, 225, .5);
+}
+
+.dark .nice-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(226, 232, 240, .75);
+}

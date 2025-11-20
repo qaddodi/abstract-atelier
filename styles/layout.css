@@ -1,0 +1,121 @@
+/* Workspace layout shell: wraps the sidebar + editor track */
+#workspace-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  gap: 0;
+  padding-left: var(--page-margin);
+  padding-right: var(--page-margin);
+  transition: padding .32s ease;
+}
+
+@media (min-width: 768px) {
+  #workspace-shell {
+    align-items: flex-start;
+  }
+}
+
+#workspace-shell>.flex-1 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  transition: margin .32s ease, max-width .32s ease, width .32s ease, flex-basis .32s ease;
+}
+
+@media (min-width: 768px) {
+
+  /* Apply spacing only where needed, with a single gap when both sidebars are open */
+  body:not(.pmid-sidebar-collapsed):not(.abstract-sidebar-open) #pmid-sidebar {
+    margin-right: var(--workspace-gap);
+  }
+
+  body.abstract-sidebar-open.pmid-sidebar-collapsed #abstract-sidebar {
+    margin-left: var(--workspace-gap);
+  }
+
+  body.abstract-sidebar-open:not(.pmid-sidebar-collapsed) #workspace-shell {
+    gap: var(--workspace-gap);
+  }
+}
+
+body.pmid-sidebar-collapsed #pmid-sidebar {
+  opacity: 0;
+  transform: translateX(-28px);
+  width: 0;
+  max-width: 0;
+  flex-basis: 0;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-width: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+body.pmid-sidebar-collapsed #editor-card {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+body:not(.pmid-sidebar-ready) #pmid-sidebar,
+body:not(.pmid-sidebar-ready) #workspace-shell>.flex-1 {
+  transition: none !important;
+}
+
+@media (max-width: 767px) {
+
+  /* Mobile slide-over citations */
+  body.pmid-sidebar-mobile-open {
+    overflow: auto;
+  }
+
+  #pmid-sidebar,
+  #abstract-sidebar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: 75vw;
+    max-width: 75vw;
+    flex-basis: 75vw;
+    height: 45vh;
+    max-height: calc(100vh - (var(--topbar-height, 0px) + 56px));
+    margin: 0 auto;
+    --sidebar-radius: 16px 16px 0 0;
+    border-radius: var(--sidebar-radius);
+    transform: translateY(110%);
+    opacity: 0;
+    pointer-events: none;
+    display: block;
+    z-index: 80;
+    /* above statusbar and other UI */
+    transition: transform .32s ease, opacity .22s ease;
+  }
+
+  body.pmid-sidebar-mobile-open #pmid-sidebar,
+  body.abstract-sidebar-open #abstract-sidebar {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+    width: 75vw;
+    max-width: 75vw;
+    flex-basis: 75vw;
+  }
+
+  #toggle-sidebar {
+    display: inline-flex;
+  }
+
+  #editor-card {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #workspace-shell>.flex-1 {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0 !important;
+  }
+}
