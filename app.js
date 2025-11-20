@@ -632,6 +632,58 @@
         window.addEventListener('resize', () => snapToolbarToStart('auto'), { passive: true });
       };
 
+      const initToolbarTooltips = toolbarEl => {
+        if (!toolbarEl) return;
+        const tooltip = document.createElement('div');
+        tooltip.id = 'toolbar-tooltip';
+        tooltip.setAttribute('role', 'tooltip');
+        document.body.appendChild(tooltip);
+        toolbarEl.classList.add('toolbar-tooltips-ready');
+        let activeBtn = null;
+        const positionTooltip = btn => {
+          const rect = btn?.getBoundingClientRect();
+          if (!rect) return;
+          const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+          const x = Math.min(Math.max(rect.left + (rect.width / 2), 8), Math.max(8, viewportWidth - 8));
+          const y = rect.bottom + 8;
+          tooltip.style.left = `${x}px`;
+          tooltip.style.top = `${y}px`;
+        };
+        const hideTooltip = () => {
+          activeBtn = null;
+          tooltip.classList.remove('is-visible');
+        };
+        const showTooltip = btn => {
+          const label = btn?.dataset?.tooltip;
+          if (!label || isMobile()) return;
+          activeBtn = btn;
+          tooltip.textContent = label;
+          positionTooltip(btn);
+          tooltip.classList.add('is-visible');
+        };
+        const handleEnter = event => {
+          const target = event?.currentTarget;
+          if (!target) return;
+          showTooltip(target);
+        };
+        const handleLeave = () => hideTooltip();
+        toolbarEl.querySelectorAll('[data-tooltip]').forEach(btn => {
+          btn.addEventListener('mouseenter', handleEnter);
+          btn.addEventListener('focus', handleEnter);
+          btn.addEventListener('mouseleave', handleLeave);
+          btn.addEventListener('blur', handleLeave);
+        });
+        toolbarEl.addEventListener('scroll', () => {
+          if (!activeBtn) return;
+          positionTooltip(activeBtn);
+        }, { passive: true });
+        window.addEventListener('resize', () => {
+          if (!activeBtn) return;
+          positionTooltip(activeBtn);
+        }, { passive: true });
+        window.addEventListener('scroll', hideTooltip, { passive: true });
+      };
+
       const initExport = quill => {
         const exportBtn = document.getElementById('export-pdf');
         if (!exportBtn) return;
@@ -2211,6 +2263,7 @@
         const { quill, toolbarEl } = initQuill();
         initViewToggle(quill);
         setupToolbarSnap(toolbarEl, quill);
+        initToolbarTooltips(toolbarEl);
         initExport(quill);
         initCopy(quill);
         const { ensureCaretBelowTop, topbarEl } = initLayout(quill);

@@ -102,7 +102,7 @@
   gap: .5rem;
   width: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
   white-space: nowrap;
   flex-wrap: nowrap;
   scrollbar-width: thin;
@@ -211,6 +211,39 @@
 .dark .ql-custom-btn[data-tooltip]::after {
   background: rgba(15, 23, 42, .94);
   color: #e5e7eb;
+}
+
+#toolbar.toolbar-tooltips-ready .ql-custom-btn[data-tooltip]::after {
+  display: none;
+}
+
+#toolbar-tooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -4px);
+  padding: 6px 8px;
+  background: rgba(15, 23, 42, .9);
+  color: #f8fafc;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .24);
+  transition: opacity .15s ease, transform .15s ease;
+  z-index: 80;
+}
+
+.dark #toolbar-tooltip {
+  background: rgba(15, 23, 42, .94);
+  color: #e5e7eb;
+}
+
+#toolbar-tooltip.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .ql-custom-btn[data-tooltip]:hover::after,
