@@ -1,4 +1,3 @@
-/** Consolidated Abstract Atelier entry point */
 
 /* from modules/config.js */
 const APP_CONFIG = {
