@@ -13,7 +13,7 @@ const APP_CONFIG = {
   saveDebounce: 300,
   sidebarUpdateDebounce: 160,
   highlightDebounce: 60,
-  fileProtocolProxyPrefix: 'https://r.jina.ai/https://'
+  fileProtocolProxyPrefix: ''
 };
 
 const CONFIG = {
@@ -257,6 +257,7 @@ const fetchPmidMetadataNow = async pmid => {
     return (last + (initials ? ' ' + initials : '')).trim();
   }).filter(Boolean);
   const authorsFull = authors.length ? authors.join(', ') : 'Authors not found';
+  const firstAuthor = authors.length ? `${authors[0]} et al.` : 'Authors not found';
   let authorsDisplay = authorsFull;
   if (authorsDisplay.length > 140) authorsDisplay = authorsDisplay.slice(0, 137) + '...';
   const abstractNodes = article.querySelectorAll('AbstractText');
@@ -301,6 +302,7 @@ const fetchPmidMetadataNow = async pmid => {
     citation: citationParts.join(' '),
     authorsFull,
     authorsDisplay,
+    firstAuthor,
     abstractHtml,
     pubTypes,
     typeFull,
@@ -916,6 +918,7 @@ const initPopup = (quill, topbarEl, state) => {
       const abstractMarkup = metadata.abstractHtml
         ? `<div class="abstract-box flex-1 text-sm leading-relaxed nice-scroll overflow-y-auto rounded-lg px-3 py-3">${metadata.abstractHtml}</div>`
         : '';
+      const authorLabel = metadata.firstAuthor || 'Authors not found';
       popup.innerHTML = `
         <div class="flex flex-1 flex-col gap-4 h-full">
           <div data-popup-header class="space-y-3">
@@ -925,6 +928,7 @@ const initPopup = (quill, topbarEl, state) => {
               <span class="text-right">${yearLabel}</span>
             </div>
             <div class="text-lg font-semibold leading-snug text-center text-gray-800 dark:text-gray-100 px-2">${metadata.title}</div>
+            <div class="text-[0.7rem] uppercase tracking-[0.18em] text-center text-gray-500 dark:text-gray-300">${authorLabel}</div>
           </div>
           ${abstractMarkup}
         </div>
@@ -1444,6 +1448,7 @@ const createSidebars = state => {
       const abstractMarkup = metadata?.abstractHtml
         ? `<div class="abstract-sidebar-abstract nice-scroll">${metadata.abstractHtml}</div>`
         : '<div class="abstract-sidebar-abstract text-gray-600 dark:text-gray-300">No abstract available.</div>';
+      const authorLabel = metadata?.firstAuthor || 'Authors not found';
       const inText = isPmidInText(pmid);
       const isViewOnly = document.body.classList.contains('view-only-mode');
       const showCite = !isViewOnly && (viewSource === 'search' || !inText);
@@ -1463,6 +1468,7 @@ const createSidebars = state => {
             ${citeButton}
           </div>
           <div class="abstract-sidebar-title-text">${titleLabel}</div>
+          <div class="abstract-sidebar-author">${authorLabel}</div>
           ${abstractMarkup}
           <div class="abstract-sidebar-bottom">
             <span class="abstract-sidebar-journal" title="${journalLabel}">${journalLabel}</span>
@@ -1546,6 +1552,7 @@ const createSidebars = state => {
       const pmidLabel = card.querySelector('.pmid-card-pmid-link');
       const yearEl = card.querySelector('.pmid-card-year');
       const titleEl = card.querySelector('.pmid-card-title');
+      const authorEl = card.querySelector('.pmid-card-author');
       const journalEl = card.querySelector('.pmid-card-journal');
       const typeEl = card.querySelector('.pmid-card-type');
       if (pmidLabel) {
@@ -1558,6 +1565,10 @@ const createSidebars = state => {
       if (titleEl) {
         titleEl.textContent = metadata.title || 'Citation unavailable';
         titleEl.classList.remove('pmid-card-loading');
+      }
+      if (authorEl) {
+        authorEl.textContent = metadata.firstAuthor || 'Authors not found';
+        authorEl.classList.remove('pmid-card-loading');
       }
       if (journalEl) {
         journalEl.textContent = metadata.journalAbbrev || metadata.journalTitle || '—';
@@ -1587,6 +1598,7 @@ const createSidebars = state => {
             <span class="pmid-card-year pmid-card-loading">•••</span>
           </div>
           <div class="pmid-card-title pmid-card-loading">Fetching citation…</div>
+          <div class="pmid-card-author pmid-card-loading">Loading authors…</div>
           <div class="pmid-card-row">
             <div class="pmid-card-journal pmid-card-loading">Loading journal…</div>
             <div class="pmid-card-type pmid-card-loading" aria-label="Article type">—</div>
@@ -2119,6 +2131,7 @@ const createSidebars = state => {
             <span class="pmid-card-year pmid-card-loading">•••</span>
           </div>
           <div class="pmid-card-title pmid-card-loading">Fetching citation…</div>
+          <div class="pmid-card-author pmid-card-loading">Loading authors…</div>
           <div class="pmid-card-row">
             <div class="pmid-card-journal pmid-card-loading">Loading journal…</div>
             <div class="pmid-card-type pmid-card-loading" aria-label="Article type">—</div>
@@ -2145,6 +2158,11 @@ const createSidebars = state => {
       if (titleEl) {
         titleEl.textContent = metadata.title || 'Title unavailable';
         titleEl.classList.remove('pmid-card-loading', 'pmid-card-error');
+      }
+      const authorEl = card.querySelector('.pmid-card-author');
+      if (authorEl) {
+        authorEl.textContent = metadata.firstAuthor || 'Authors not found';
+        authorEl.classList.remove('pmid-card-loading', 'pmid-card-error');
       }
       const journalEl = card.querySelector('.pmid-card-journal');
       if (journalEl) {
@@ -2183,6 +2201,12 @@ const createSidebars = state => {
         titleEl.textContent = 'Unable to load citation';
         titleEl.classList.remove('pmid-card-loading');
         titleEl.classList.add('pmid-card-error');
+      }
+      const authorEl = card.querySelector('.pmid-card-author');
+      if (authorEl) {
+        authorEl.textContent = 'Authors unavailable';
+        authorEl.classList.remove('pmid-card-loading');
+        authorEl.classList.add('pmid-card-error');
       }
       const journalEl = card.querySelector('.pmid-card-journal');
       if (journalEl) {

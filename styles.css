@@ -1314,6 +1314,13 @@ body.abstract-sidebar-open #abstract-sidebar {
   color: var(--text-strong);
 }
 
+.pmid-card-author {
+  font-size: .58rem;
+  text-transform: uppercase;
+  letter-spacing: .16em;
+  color: var(--text-muted);
+}
+
 .pmid-card-journal {
   font-size: .62rem;
   color: var(--text-muted);
@@ -1517,6 +1524,14 @@ body.abstract-sidebar-open #abstract-sidebar {
   font-weight: 700;
   line-height: 1.35;
   color: var(--text-strong);
+  text-align: center;
+}
+
+.abstract-sidebar-author {
+  font-size: .62rem;
+  text-transform: uppercase;
+  letter-spacing: .2em;
+  color: var(--text-muted);
   text-align: center;
 }
 
