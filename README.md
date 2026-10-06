@@ -60,5 +60,6 @@ Abstract Atelier is a lightweight client side app. It helps you draft and annota
 - `index.html` contains the app UI, styles, and scripts
 - `README.md` is this guide
 
-## License
-No license file is present in the repository yet
+## Copyright
+
+© 2026 Mohammad Almeqdadi. All rights reserved.
